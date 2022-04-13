@@ -1,0 +1,141 @@
+#ifndef TOMATO_INPUT_HPP_
+#define TOMATO_INPUT_HPP_
+#include "common.hpp"
+
+
+namespace tom
+{
+namespace input
+{
+// TODO: constexpr?
+#define INPUT_CNT        1
+#define MOUSE_BUTTON_CNT 3
+
+global_var f64 g_mouse_x;
+global_var f64 g_mouse_y;
+
+global_var f64 g_scroll_x_off;
+global_var f64 g_scroll_y_off;
+
+struct button
+{
+    s32 half_transition_cnt;
+    b32 ended_down;
+};
+
+typedef button key;
+
+struct mouse
+{
+    global_var constexpr u32 but_cnt = 3;
+    v2 pos;
+    v2 pos_last;
+    union
+    {
+        button buttons[but_cnt];
+        struct
+        {
+            button l, r, m;
+        };
+    };
+
+    f32 scroll;
+    v2 get_mouse_delta() const { return pos - pos_last; }
+};
+
+struct keyboard
+{
+    global_var constexpr u32 key_cnt = 16;
+    union
+    {
+        key keys[key_cnt];
+        struct
+        {
+            key d1;
+            key d2;
+            key d3;
+            key d4;
+            key d5;
+            key enter;
+            key space;
+            key left_shift;
+            key r;
+            key t;
+            key q;
+            key w;
+            key a;
+            key s;
+            key d;
+            key p;
+        };
+    };
+};
+
+struct controller
+{
+    b32 is_connected;
+    b32 is_analog;
+
+    f32 min_x;
+    f32 min_y;
+
+    f32 max_x;
+    f32 max_y;
+
+    f32 start_left_stick_x;
+    f32 start_left_stick_y;
+
+    f32 start_right_stick_y;
+    f32 start_right_stick_x;
+
+    f32 end_left_stick_x;
+    f32 end_left_stick_y;
+
+    f32 end_right_stick_x;
+    f32 end_right_stick_y;
+
+    union
+    {
+        button buttons[12];
+        struct
+        {
+            button dpad_up;
+            button dpad_right;
+            button dpad_down;
+            button dpad_left;
+            button a;
+            button b;
+            button x;
+            button y;
+            button rb;
+            button lb;
+            button back;
+            button start;
+        };
+    };
+};
+
+inline bool is_button_up(const button b)
+{
+    return b.half_transition_cnt > 0 && b.ended_down == 0;
+}
+
+inline bool is_key_up(const key k)
+{
+    return k.half_transition_cnt > 0 && k.ended_down == 0;
+}
+
+inline bool is_button_down(const button b)
+{
+    return b.ended_down;
+}
+
+inline bool is_key_down(const key k)
+{
+    return k.ended_down;
+}
+
+}  // namespace input
+}  // namespace tom
+
+#endif
