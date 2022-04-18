@@ -225,11 +225,73 @@ internal void render(game_state *state)
 
 bool init(thread_context *thread, game_memory *memory)
 {
+#if TOM_OPENGL
+    ogl::init_func_ptrs(&memory->ogl_func_ptrs, memory->ogl_get_func_ptr);
+#endif
+
+    TOM_ASSERT(sizeof(game_state) <= memory->permanent_storage_size);
+    game_state *state = (game_state *)memory->permanent_storage;
+    szt game_size     = sizeof(game_state);
+
+    init_arena(&state->arena, memory->permanent_storage_size - game_size,
+               (byt *)memory->permanent_storage + game_size);
+
+    state->clear_color = { 0.2f, 0.3f, 0.3f, 1.0f };
+
+    const char *vert_code =
+        "#version 130\n"
+        "in vec4 position;\n"
+        "out vec2 uv;\n"
+        "\n"
+        "void main() {\n"
+        "  gl_Position = position;\n"
+        "  uv = (position.xy + 1.0) / 2.0;\n"
+        "}\n";
+
+    const char *frag_code =
+        "#version 130\n"
+        "in vec2 uv;\n"
+        "out vec4 color;\n"
+        "\n"
+        "void main() {\n"
+        "  color = vec4(uv, 0.0, 1.0);\n"
+        "}\n";
+
+    state->verts[0] = -1.0f;
+    state->verts[1] = 1.0f;
+    state->verts[2] = -1.0f;
+    state->verts[3] = -1.0f;
+    state->verts[4] = 1.0f;
+    state->verts[5] = -1.0f;
+
+    state->main_shader = shader(&memory->ogl_func_ptrs, vert_code, frag_code, true);
+    memory->ogl_func_ptrs.gen_buffers(1, &state->vbo);
+    memory->ogl_func_ptrs.bind_buffer(GL_ARRAY_BUFFER, state->vbo);
+    memory->ogl_func_ptrs.buffer_data(GL_ARRAY_BUFFER, sizeof(state->verts), state->verts,
+                                      GL_STATIC_DRAW);
+
+    state->main_shader.use();
+
+    s32 position = memory->ogl_func_ptrs.get_attrib_loc(state->main_shader.get_id(), "position");
+    memory->ogl_func_ptrs.enable_vertex_attrib_array(position);
+
+    memory->ogl_func_ptrs.bind_buffer(GL_ARRAY_BUFFER, state->vbo);
+    memory->ogl_func_ptrs.vertex_attrib_ptr(position, 2, GL_FLOAT, GL_FALSE, 0, 0);
+
     return true;
 }
 
 void update(thread_context *thread, game_memory *memory, game_input input, f32 dt)
 {
+    game_state *state = (game_state *)memory->permanent_storage;
+
+#if TOM_OPENGL
+    glClearColor(state->clear_color.r, state->clear_color.g, state->clear_color.b,
+                 state->clear_color.a);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glDrawArrays(GL_TRIANGLES, 0, 3);
+
+#endif
 }
 
 // NOTE: clean up here

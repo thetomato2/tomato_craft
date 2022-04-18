@@ -23,6 +23,10 @@
 #include <xinput.h>
 #include <mmdeviceapi.h>
 #include <audioclient.h>
+#if TOM_OPENGL
+    #include <GL/gl.h>
+    #include "glext.h"
+#endif
 
 namespace tom
 {

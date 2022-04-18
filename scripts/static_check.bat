@@ -1,4 +1,4 @@
-pushd T:\src
+pushd ..\src
 
 @echo ------------------------------
 @echo STATICS FOUND:

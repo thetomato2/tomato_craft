@@ -44,7 +44,7 @@ list(APPEND COMPILE_FLAGS
 
 list(APPEND COMPILE_DEFS
     TOM_INTERNAL
-    GLFW_INCLUDE_NONE
+    TOM_WIN32
     )
 
 list(APPEND LINKER_FLAGS
@@ -59,6 +59,7 @@ list(APPEND COMMON_LINKER_LIBS
     winmm.lib
     kernel32.lib
     Ole32.lib
+    opengl32.lib
     )
 
 file(GLOB SHADERS
@@ -100,13 +101,16 @@ add_executable(tomato_craft WIN32
     ${SOURCE_DIR}/common.hpp
     # ${SOURCE_DIR}/camera.hpp
     ${SOURCE_DIR}/color.hpp
-    # ${SOURCE_DIR}/shader.hpp
+    ${SOURCE_DIR}/shader.hpp
     ${SOURCE_DIR}/intrinsic.hpp
     ${SOURCE_DIR}/game.hpp
     ${SOURCE_DIR}/math.hpp
+    ${SOURCE_DIR}/glext.h
+    ${SOURCE_DIR}/opengl.hpp
     ${SOURCE_DIR}/utils.hpp
     ${SOURCE_DIR}/game.cpp
-    # ${SOURCE_DIR}/shader.cpp
+    ${SOURCE_DIR}/opengl.cpp
+    ${SOURCE_DIR}/shader.cpp
     ${SOURCE_DIR}/win32_platform.cpp
     ${SOURCE_DIR}/win32_platform.cpp
     )

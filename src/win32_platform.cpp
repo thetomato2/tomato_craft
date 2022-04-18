@@ -49,17 +49,18 @@ xinput_set_state *XInputSetState_ { _xinput_set_state };
 #define XInputGetState XInputGetState_
 #define XInputSetState XInputSetState_
 
-#ifdef TOM_INTERNAL
-DEBUG_PLATFORM_FREE_FILE_MEMORY(_debug_platform_free_file_memory)
+void free_file_memory(thread_context *thread, void *memory)
 {
     if (memory) {
         VirtualFree(memory, 0, MEM_RELEASE);
+    } else {
+        INVALID_CODE_PATH;
     }
 }
 
-DEBUG_PLATFORM_READ_ENTIRE_FILE(_debug_platform_read_entire_file)
+read_file_result read_entire_file(thread_context *thread, const char *file_name)
 {
-    debug_read_file_result file = {};
+    read_file_result file = {};
 
     HANDLE file_handle { CreateFileA(file_name, GENERIC_READ, 0, 0, OPEN_EXISTING,
                                      FILE_ATTRIBUTE_NORMAL, 0) };
@@ -74,7 +75,7 @@ DEBUG_PLATFORM_READ_ENTIRE_FILE(_debug_platform_read_entire_file)
                     fileSize32 == bytesRead) {
                     file.content_size = fileSize32;
                 } else {
-                    _debug_platform_free_file_memory(thread, file.contents);
+                    free_file_memory(thread, file.contents);
                     file.contents = 0;
                 }
             } else {
@@ -88,7 +89,7 @@ DEBUG_PLATFORM_READ_ENTIRE_FILE(_debug_platform_read_entire_file)
     return file;
 }
 
-DEBUG_PLATFORM_WRITE_ENTIRE_FILE(_debug_platform_write_entire_file)
+b32 write_entire_file(thread_context *thread, const char *file_name, u64 memory_size, void *memory)
 {
     b32 success = false;
 
@@ -106,8 +107,6 @@ DEBUG_PLATFORM_WRITE_ENTIRE_FILE(_debug_platform_write_entire_file)
     }
     return success;
 }
-
-#endif
 
 internal void toggle_fullscreen(HWND hwnd)
 {
@@ -186,20 +185,20 @@ internal void init_WASAPI(s32 samples_per_second, s32 buffer_size_in_samples)
 
     if (FAILED(g_audio_client->Initialize(AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_NOPERSIST,
                                           buffer_duration, 0, &wave_format.Format, nullptr))) {
-        TOM_ASSERT(false);
+        INVALID_CODE_PATH;
     }
 
     if (FAILED(g_audio_client->GetService(IID_PPV_ARGS(&g_audio_render_client)))) {
-        TOM_ASSERT(false);
+        INVALID_CODE_PATH;
     }
 
     UINT32 sound_frame_cnt;
     if (FAILED(g_audio_client->GetBufferSize(&sound_frame_cnt))) {
-        TOM_ASSERT(false);
+        INVALID_CODE_PATH;
     }
 
     if (FAILED(g_audio_client->GetService(IID_PPV_ARGS(&g_audio_clock)))) {
-        TOM_ASSERT(false);
+        INVALID_CODE_PATH;
     }
 
     // Check if we got what we requested (better would to pass this value back
@@ -426,6 +425,57 @@ internal void do_controller_input(game::game_input &old_input, game::game_input 
     }
 }
 
+#if TOM_OPENGL
+
+internal HGLRC init_wgl(HDC dc)
+{
+    // get OpenGL context
+    PIXELFORMATDESCRIPTOR pfd = {};
+    pfd.nSize                 = sizeof(PIXELFORMATDESCRIPTOR);
+    pfd.nVersion              = 1;
+    pfd.dwFlags =
+        PFD_SUPPORT_OPENGL | PFD_GENERIC_ACCELERATED | PFD_DRAW_TO_WINDOW | PFD_DOUBLEBUFFER;
+    pfd.iPixelType = PFD_TYPE_RGBA;
+    pfd.cColorBits = 32;
+
+    s32 pixel_format = ChoosePixelFormat(dc, &pfd);
+    TOM_ASSERT(pixel_format);
+
+    if (FAILED(SetPixelFormat(dc, pixel_format, &pfd))) {
+        INVALID_CODE_PATH;
+    }
+
+    HGLRC rc = wglCreateContext(dc);
+    TOM_ASSERT(rc);
+
+    if (FAILED(wglMakeCurrent(dc, rc))) {
+        INVALID_CODE_PATH;
+    }
+
+    printf("GL_VENDOR: %s\n", glGetString(GL_VENDOR));
+    printf("GL_VERSION: %s\n", glGetString(GL_VERSION));
+    printf("GL_RENDERER: %s\n", glGetString(GL_RENDERER));
+
+    return rc;
+}
+
+internal void exit_wgl(HGLRC rc)
+{
+    wglMakeCurrent(NULL, NULL);
+    wglDeleteContext(rc);
+}
+
+internal void swap_buffer(HDC dc)
+{
+}
+
+void *ogl_get_func_ptr(const char *name)
+{
+    return wglGetProcAddress(name);
+}
+
+#endif
+
 internal LARGE_INTEGER get_wall_clock()
 {
     LARGE_INTEGER time;
@@ -531,6 +581,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
             PostQuitMessage(0);
         } break;
         case WM_ACTIVATEAPP: break;
+#if 0
         case WM_PAINT: {
             PAINTSTRUCT paint;
             HDC device_context = BeginPaint(hwnd, &paint);
@@ -541,6 +592,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
             display_buffer_in_window(device_context, g_back_buffer, x, y, width, height);
             EndPaint(hwnd, &paint);
         } break;
+#endif
         default:
             //            OutPutDebugStringA("default\n");
             result = DefWindowProc(hwnd, msg, wparam, lparam);
@@ -628,14 +680,15 @@ s32 win32_main(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, s
 
     resize_dib_section(g_back_buffer, win_width, win_height);
 
-    WNDCLASS window_class = { .style         = CS_HREDRAW | CS_VREDRAW | CS_OWNDC,
+    const TCHAR *cls_name = _T("TomatoWinCls");
+    WNDCLASS cls          = { .style         = CS_HREDRAW | CS_VREDRAW | CS_OWNDC,
                               .lpfnWndProc   = WndProc,
                               .hInstance     = hInstance,
                               .hIcon         = icon,
                               .hCursor       = LoadCursor(NULL, IDC_ARROW),
-                              .lpszClassName = _T("TomatoWinCls") };
+                              .lpszClassName = cls_name };
 
-    if (!RegisterClass(&window_class)) {
+    if (!RegisterClass(&cls)) {
         printf("ERROR--> Failed to register window class!\n");
         TOM_ASSERT(false);
         return 0;
@@ -651,9 +704,9 @@ s32 win32_main(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, s
         TOM_ASSERT(false);
     }
 
-    HWND hwnd = CreateWindowEx(0, window_class.lpszClassName, _T("TomatoGame"), dw_style,
-                               CW_USEDEFAULT, CW_USEDEFAULT, wr.right - wr.left, wr.bottom - wr.top,
-                               NULL, NULL, hInstance, NULL);
+    HWND hwnd = CreateWindowEx(0, cls.lpszClassName, _T("TomatoGame"), dw_style, CW_USEDEFAULT,
+                               CW_USEDEFAULT, wr.right - wr.left, wr.bottom - wr.top, NULL, NULL,
+                               hInstance, NULL);
 
     if (!hwnd) {
         printf("Failed to create window!\n");
@@ -681,13 +734,20 @@ s32 win32_main(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, s
     b32 is_sleep_granular     = (timeBeginPeriod(desired_scheduler_MS) == TIMERR_NOERROR);
     is_sleep_granular         = false;
 
-    HDC device_context            = GetDC(hwnd);
+    HDC hdc                       = GetDC(hwnd);
     running                       = true;
     g_pause                       = false;
     g_back_buffer.bytes_per_pixel = 4;
 
-    s32 monitor_refresh_rate = GetDeviceCaps(device_context, VREFRESH);
+    s32 monitor_refresh_rate = GetDeviceCaps(hdc, VREFRESH);
     printf("Monitor Refresh Rate: %d\n", monitor_refresh_rate);
+
+#if TOM_OPENGL
+    HGLRC ogl_rc;
+    ogl_rc = init_wgl(hdc);
+#else
+    printf("ERROR-> No graphics context!\n");
+#endif
 
     sound_output sound_output = {
         .samples_per_sec      = 48000,
@@ -710,11 +770,15 @@ s32 win32_main(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, s
     LPVOID base_address = 0;
 #endif
 
-    game::game_memory memory = { .permanent_storage_size     = MEGABYTES(256),
-                                 .transient_storage_size     = GIGABYTES(1),
-                                 .platform_free_file_memory  = _debug_platform_free_file_memory,
-                                 .platform_read_entire_file  = _debug_platform_read_entire_file,
-                                 .platform_write_entire_file = _debug_platform_write_entire_file };
+    game::game_memory memory          = {};
+    memory.permanent_storage_size     = MEGABYTES(256);
+    memory.transient_storage_size     = GIGABYTES(1);
+    memory.platform_free_file_memory  = free_file_memory;
+    memory.platform_read_entire_file  = read_entire_file;
+    memory.platform_write_entire_file = write_entire_file;
+#if TOM_OPENGL
+    memory.ogl_get_func_ptr = ogl_get_func_ptr;
+#endif
 
     state.total_size = memory.permanent_storage_size + memory.transient_storage_size;
     // TODO: use large pages
@@ -816,9 +880,12 @@ s32 win32_main(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, s
 
         last_counter = end_counter;
 
-        // NOTE: this is debug code
-        display_buffer_in_window(device_context, g_back_buffer, 0, 0, g_win_dim.width,
-                                 g_win_dim.height);
+// NOTE: this is debug code
+#if TOM_OPENGL
+        SwapBuffers(hdc);
+#else
+        display_buffer_in_window(hdc, g_back_buffer, 0, 0, g_win_dim.width, g_win_dim.height);
+#endif
 
         DWORD play_cursor;
         DWORD write_cursor;
@@ -851,6 +918,14 @@ s32 win32_main(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, s
 
     // clean up
     game::exit(&thread, &memory);
+
+#if TOM_OPENGL
+    exit_wgl(ogl_rc);
+#endif
+
+    ReleaseDC(hwnd, hdc);
+    DestroyWindow(hwnd);
+    UnregisterClass(cls_name, NULL);
 
     return 0;
 }

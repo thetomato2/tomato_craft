@@ -3,37 +3,31 @@
 #include <stb_image.h>
 
 #include "common.hpp"
-// #include "shader.hpp"
+#include "shader.hpp"
 // #include "camera.hpp"
 #include "input.hpp"
+#include "opengl.hpp"
 
 namespace tom
 {
 
-#ifdef TOM_INTERNAL
-typedef struct debug_read_file_result
+struct read_file_result
 {
-    u32 content_size;
+    szt content_size;
     void *contents;
-} debug_read_file_result;
+};
 
-    #define DEBUG_PLATFORM_FREE_FILE_MEMORY(name) void name(thread_context *thread, void *memory)
-typedef DEBUG_PLATFORM_FREE_FILE_MEMORY(debug_platform_free_file_memory);
+using platform_free_file_memory  = void (*)(thread_context *, void *);
+using platform_read_entire_file  = read_file_result (*)(thread_context *, const char *);
+using platform_write_entire_file = b32 (*)(thread_context *, const char *, u64, void *);
 
-    #define DEBUG_PLATFORM_READ_ENTIRE_FILE(name) \
-        debug_read_file_result name(thread_context *thread, const char *file_name)
-typedef DEBUG_PLATFORM_READ_ENTIRE_FILE(debug_platform_read_entire_file);
-
-    #define DEBUG_PLATFORM_WRITE_ENTIRE_FILE(name) \
-        b32 name(thread_context *thread, const char *file_name, u64 memory_size, void *memory)
-typedef DEBUG_PLATFORM_WRITE_ENTIRE_FILE(debug_platform_write_entire_file);
+#if TOM_OPENGL
+using platform_get_ogl_func_ptr = void *(*)(const char *);
 #endif
 
 namespace game
 {
-
-
-typedef struct game_memory
+struct game_memory
 {
     bool is_initialized;
     u64 permanent_storage_size;
@@ -42,12 +36,15 @@ typedef struct game_memory
     u64 transient_storage_size;
     void *transient_storage;  // NOTE: required to be cleared to 0!
 
-#ifdef TOM_INTERNAL
-    debug_platform_free_file_memory *platform_free_file_memory;
-    debug_platform_read_entire_file *platform_read_entire_file;
-    debug_platform_write_entire_file *platform_write_entire_file;
+    platform_free_file_memory platform_free_file_memory;
+    platform_read_entire_file platform_read_entire_file;
+    platform_write_entire_file platform_write_entire_file;
+
+#if TOM_OPENGL
+    platform_get_ogl_func_ptr ogl_get_func_ptr;
+    ogl::wgl_func_ptrs ogl_func_ptrs;
 #endif
-} game_memory;
+};
 
 struct game_input
 {
@@ -60,6 +57,7 @@ struct game_input
 
 struct game_state
 {
+    memory_arena arena;
     bool g_running;
     bool g_line_mode;
 
@@ -74,8 +72,11 @@ struct game_state
 
     f32 time_last;
 
-    m4 clear_color;
+    v4 clear_color;
     u32 vbo, vao, ebo, text_1;
+
+    shader main_shader;
+    f32 verts[6];
 };
 
 struct offscreen_buffer

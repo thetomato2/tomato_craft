@@ -3,12 +3,7 @@
 
 #include "common.hpp"
 #include "math.hpp"
-
-// TODO: phase these out
-#include <string>
-#include <fstream>
-#include <iostream>
-#include <sstream>
+#include "opengl.hpp"
 
 namespace tom
 {
@@ -22,12 +17,12 @@ public:
     };
 
 public:
-    shader(const std::string &vert_path, const std::string &frag_path);
+    shader(void *func_ptrs, const char *vert_path, const char *frag_path, bool code = false);
     ~shader();
 
     u32 get_id() const { return _id; }
-    std::string get_vert_code() const { return _vert_code; }
-    std::string get_frag_code() const { return _frag_code; }
+    const char *get_vert_code() const { return _vert_code; }
+    const char *get_frag_code() const { return _frag_code; }
 
     void use();
     void set_b32(const char *name, b32 val) const;
@@ -38,11 +33,14 @@ public:
 
 private:
     u32 _id;
-    std::string _vert_code;
-    std::string _frag_code;
+    char _vert_code[4096];
+    char _frag_code[4096];
 
     void check_shader_compile_errors(u32 shader_id, shader::type type);
-    std::string read_shader_code(const std::string &path);
+    char *read_shader_code(const char *path);
+#if TOM_OPENGL
+    ogl::wgl_func_ptrs *_func_ptrs;
+#endif
 };
 
 }  // namespace tom

@@ -29,32 +29,30 @@
     #pragma intrinsic(_BitScanForward)
 #endif
 
-typedef int8_t s8;
-typedef int16_t s16;
-typedef int32_t s32;
-typedef int64_t s64;
+using s8  = int8_t;
+using s16 = int16_t;
+using s32 = int32_t;
+using s64 = int64_t;
 
-typedef uint8_t u8;
-typedef uint16_t u16;
-typedef uint32_t u32;
-typedef uint64_t u64;
+using u8  = uint8_t;
+using u16 = uint16_t;
+using u32 = uint32_t;
+using u64 = uint64_t;
 
-typedef float f32;
-typedef double f64;
+using f32 = float;
+using f64 = double;
 
-typedef size_t szt;
-typedef size_t mem_ind;
-typedef u8 byt;
+using szt = size_t;
+using byt = u8;
+
+using b32 = s32;
 
 #ifdef _WIN32
-typedef wchar_t wchar;
-typedef unsigned long ul;
-typedef unsigned long long ull;
+using whcar = wchar_t;
+using ul    = unsigned long;
+using ull   = unsigned long long;
 #endif
 
-typedef int32_t b32;
-
-#ifdef __cplusplus
 static_assert(sizeof(s8) == 1, "s8 isn't 1 byte!");
 static_assert(sizeof(s16) == 2, "s16 isn't 2 byte!s");
 static_assert(sizeof(s32) == 4, "s32 isn't 4 byte!s");
@@ -66,7 +64,6 @@ static_assert(sizeof(u64) == 8, "u64 isn't 8 byte!s");
 static_assert(sizeof(f32) == 4, "f32 isn't 4 byte!s");
 static_assert(sizeof(f64) == 8, "f64 isn't 8 byte!s");
 static_assert(sizeof(b32) == 4, "b32 isn't 4 byte!s");
-#endif
 
 #define U8_MIN 0u
 #define U8_MAX 0xffu
@@ -97,15 +94,9 @@ static_assert(sizeof(b32) == 4, "b32 isn't 4 byte!s");
 
 #define ARRAY_COUNT(array) (sizeof((array)) / sizeof((array)[0]))
 
-// NOTE: this breaks tree-sitter >:|
 #define internal      static
 #define local_persist static
 #define global_var    static
-
-// NOTE: only win32 is supported currently
-#ifdef _WIN32
-    #define TOM_WIN32
-#endif
 
 #ifdef TOM_WIN32
     #define TOM_DLL_EXPORT __declspec(dllexport)
@@ -114,11 +105,11 @@ static_assert(sizeof(b32) == 4, "b32 isn't 4 byte!s");
 #endif
 
 #ifdef TOM_INTERNAL
-    #define TOM_ASSERT(x)                                                    \
-        if (!(x)) {                                                          \
+    #define TOM_ASSERT(x)                                               \
+        if (!(x)) {                                                     \
             printf("FAILED ASSERT -> %s at :%d\n", __FILE__, __LINE__); \
-            __debugbreak();                                                  \
-        }                                                                    \
+            __debugbreak();                                             \
+        }                                                               \
         assert(x)
 
     #define TOM_ASSERT_MSG(x, msg)                                                \
@@ -140,6 +131,9 @@ static_assert(sizeof(b32) == 4, "b32 isn't 4 byte!s");
 
 #define INVALID_CODE_PATH TOM_ASSERT(!"Invalid code path!")
 
+#define USE_CRT    1  // use the c runtime lib
+#define TOM_OPENGL 1  // use open gl
+
 #include "math.hpp"
 
 namespace tom
@@ -152,19 +146,19 @@ struct thread_context
 
 struct memory_arena
 {
-    mem_ind size;
+    szt size;
     u8 *base;
-    mem_ind used;
+    szt used;
 };
 
-inline void init_arena(memory_arena *arena, const mem_ind size, void *base)
+inline void init_arena(memory_arena *arena, const szt size, void *base)
 {
     arena->size = size;
     arena->base = scast(byt *, base);
     arena->used = 0;
 }
 
-inline void *push_size(memory_arena *arena, mem_ind size)
+inline void *push_size(memory_arena *arena, szt size)
 {
     TOM_ASSERT((arena->used + size) <= arena->size);
     void *result = arena->base + arena->used;
@@ -173,18 +167,22 @@ inline void *push_size(memory_arena *arena, mem_ind size)
     return result;
 }
 
-inline void zero_size(mem_ind size, void *ptr)
+inline void zero_size(void *ptr, szt size)
 {
+#if USE_CRT
+    memset(ptr, 0, size);
+#else
     // TODO: profile this for performance
     byt *byte = scast(byt *, ptr);
     while (size--) {
         *byte++ = 0;
     }
+#endif
 }
 
 #define PUSH_STRUCT(arena, type)       (type *)push_size(arena, sizeof(type))
 #define PUSH_ARRAY(arena, count, type) (type *)push_size(arena, (count * sizeof(type)))
-#define ZERO_STRUCT(inst)              zero_size(sizeof(inst), &(inst))
+#define ZERO_STRUCT(inst)              zero_size(&(inst), sizeof(inst))
 
 // Generic flag stuff
 
