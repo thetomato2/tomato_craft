@@ -31,7 +31,14 @@ bool init_func_ptrs(wgl_func_ptrs *func_ptrs, get_ogl_func_ptr get_func_ptr)
     func_ptrs->set_uniform_v4  = (PFNGLUNIFORM4FVPROC)get_func_ptr("glUniform4fv");
     func_ptrs->set_uniform_m4  = (PFNGLUNIFORMMATRIX4FVPROC)get_func_ptr("glUniformMatrix4fv");
     func_ptrs->delete_shader   = (PFNGLDELETESHADERPROC)get_func_ptr("glDeleteShader");
-    func_ptrs->vertex_attrib_ptr = (PFNGLVERTEXATTRIBPOINTERPROC)get_func_ptr("glVertexAttribPointer");
+    func_ptrs->vertex_attrib_ptr =
+        (PFNGLVERTEXATTRIBPOINTERPROC)get_func_ptr("glVertexAttribPointer");
+    func_ptrs->gen_vert_arr  = (PFNGLGENVERTEXARRAYSPROC)get_func_ptr("glGenVertexArrays");
+    func_ptrs->bind_vert_arr = (PFNGLBINDVERTEXARRAYPROC)get_func_ptr("glBindVertexArray");
+    func_ptrs->gen_mipmap    = (PFNGLGENERATEMIPMAPPROC)get_func_ptr("glGenerateMipmap");
+    func_ptrs->active_tex    = (PFNGLACTIVETEXTUREPROC)get_func_ptr("glActiveTexture");
+
+
     return true;
 }
 

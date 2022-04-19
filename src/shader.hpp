@@ -3,10 +3,18 @@
 
 #include "common.hpp"
 #include "math.hpp"
-#include "opengl.hpp"
+// #include "opengl.hpp"
+// #include "game.hpp"
 
 namespace tom
 {
+struct platform_io;
+namespace ogl
+{
+
+struct wgl_func_ptrs;
+}
+
 class shader
 {
 public:
@@ -17,7 +25,9 @@ public:
     };
 
 public:
-    shader(void *func_ptrs, const char *vert_path, const char *frag_path, bool code = false);
+    shader(void *func_ptrs, const char *vert_code, const char *frag_code);
+    shader(void *func_ptrs, platform_io plat_io, const char *vert_path,
+           const char *frag_path);
     ~shader();
 
     u32 get_id() const { return _id; }
@@ -25,22 +35,22 @@ public:
     const char *get_frag_code() const { return _frag_code; }
 
     void use();
-    void set_b32(const char *name, b32 val) const;
-    void set_s32(const char *name, s32 val) const;
-    void set_f32(const char *name, f32 val) const;
-    void set_vec4(const char *name, v4) const;
-    void set_mat4(const char *name, m4) const;
+    void set_b32(const char *name, b32 val);
+    void set_s32(const char *name, s32 val);
+    void set_f32(const char *name, f32 val);
+    void set_vec4(const char *name, v4 val);
+    void set_mat4(const char *name, m4 val);
 
 private:
     u32 _id;
-    char _vert_code[4096];
-    char _frag_code[4096];
-
-    void check_shader_compile_errors(u32 shader_id, shader::type type);
-    char *read_shader_code(const char *path);
+    const char *_vert_code;
+    const char *_frag_code;
 #if TOM_OPENGL
     ogl::wgl_func_ptrs *_func_ptrs;
 #endif
+
+    void init();
+    void check_shader_compile_errors(u32 shader_id, shader::type type);
 };
 
 }  // namespace tom

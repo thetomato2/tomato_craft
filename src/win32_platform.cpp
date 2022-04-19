@@ -770,15 +770,17 @@ s32 win32_main(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, s
     LPVOID base_address = 0;
 #endif
 
-    game::game_memory memory          = {};
-    memory.permanent_storage_size     = MEGABYTES(256);
-    memory.transient_storage_size     = GIGABYTES(1);
-    memory.platform_free_file_memory  = free_file_memory;
-    memory.platform_read_entire_file  = read_entire_file;
-    memory.platform_write_entire_file = write_entire_file;
+    game::game_memory memory                  = {};
+    memory.permanent_storage_size             = MEGABYTES(256);
+    memory.transient_storage_size             = GIGABYTES(1);
+    memory.plat_io.platform_free_file_memory  = free_file_memory;
+    memory.plat_io.platform_read_entire_file  = read_entire_file;
+    memory.plat_io.platform_write_entire_file = write_entire_file;
 #if TOM_OPENGL
-    memory.ogl_get_func_ptr = ogl_get_func_ptr;
+    memory.plat_io.ogl_get_func_ptr = ogl_get_func_ptr;
 #endif
+    memory.win_dims.width  = win_width;
+    memory.win_dims.height = win_height;
 
     state.total_size = memory.permanent_storage_size + memory.transient_storage_size;
     // TODO: use large pages
@@ -810,6 +812,8 @@ s32 win32_main(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, s
     // #MAIN LOOP
     // ===========================================================================================
     while (running) {
+        memory.win_dims = g_win_dim;
+
         do_controller_input(*old_input, *new_input, hwnd);
         process_pending_messages(state, *new_input);
         // NOTE: this isn't calculated and needs to be for a varaible framerate

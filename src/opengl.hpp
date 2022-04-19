@@ -1,5 +1,6 @@
 #ifndef TOMATO_OPENGL_HPP_
 #define TOMATO_OPENGL_HPP_
+#include "common.hpp"
 
 #include <windows.h>
 #include <GL/gl.h>
@@ -12,6 +13,7 @@ namespace ogl
 
 struct wgl_func_ptrs
 {
+    b32 is_init;
     PFNGLCREATEPROGRAMPROC create_program;
     PFNGLCREATESHADERPROC create_shader;
     PFNGLSHADERSOURCEPROC shader_source;
@@ -35,14 +37,28 @@ struct wgl_func_ptrs
     PFNGLUNIFORM4FVPROC set_uniform_v4;
     PFNGLUNIFORMMATRIX4FVPROC set_uniform_m4;
     PFNGLDELETESHADERPROC delete_shader;
+    PFNGLGENVERTEXARRAYSPROC gen_vert_arr;
+    PFNGLBINDVERTEXARRAYPROC bind_vert_arr;
+    PFNGLGENERATEMIPMAPPROC gen_mipmap;
+    PFNGLACTIVETEXTUREPROC active_tex;
 };
 
 using get_ogl_func_ptr = void *(*)(const char *);
 
+// Function alias's
+const auto clear_color    = glClearColor;
+const auto clear          = glClear;
+const auto draw_arrays    = glDrawArrays;
+const auto gen_tex        = glGenTextures;
+const auto bind_tex       = glBindTexture;
+const auto tex_params_s32 = glTexParameteri;
+const auto tex_img_2d     = glTexImage2D;
+const auto poly_mode      = glPolygonMode;
+const auto enable         = glEnable;
+
 bool init_func_ptrs(wgl_func_ptrs *func_ptrs, get_ogl_func_ptr get_func_ptr);
 
 }  // namespace ogl
-
 }  // namespace tom
 
 #endif  // TOMATO_OPENGL_HPP_

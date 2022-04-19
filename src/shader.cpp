@@ -1,91 +1,48 @@
 #include "shader.hpp"
 
+#include "opengl.hpp"
+#include "game.hpp"
 namespace tom
 {
 
-shader::shader(void *func_ptrs, const char *vert_path, const char *frag_path, bool code)
+shader::shader(void *func_ptrs, const char *vert_code, const char *frag_code)
 {
 #if TOM_OPENGL
     _func_ptrs = (ogl::wgl_func_ptrs *)(func_ptrs);
-    if (code) {
-        u32 vert_id;
-        vert_id = _func_ptrs->create_shader(GL_VERTEX_SHADER);
-        // NOTE: need a pointless pointer to a pointer so I can pass my pointer as a pointer
-        _func_ptrs->shader_source(vert_id, 1, &vert_path, NULL);
-        _func_ptrs->compile_shader(vert_id);
-        check_shader_compile_errors(vert_id, shader::type::vertex);
-
-        u32 frag_id;
-        frag_id = _func_ptrs->create_shader(GL_FRAGMENT_SHADER);
-        // NOTE: need a pointless pointer to a pointer so I can pass my pointer as a pointer
-        _func_ptrs->shader_source(frag_id, 1, &frag_path, NULL);
-        _func_ptrs->compile_shader(frag_id);
-        check_shader_compile_errors(frag_id, shader::type::fragment);
-
-        _id = _func_ptrs->create_program();
-        _func_ptrs->attach_shader(_id, vert_id);
-        _func_ptrs->attach_shader(_id, frag_id);
-        _func_ptrs->link_program(_id);
-
-        // check for compilation errors
-        b32 success;
-        _func_ptrs->get_program_iv(_id, GL_COMPILE_STATUS, &success);
-        if (!success) {
-            char info_buf[1024];
-            _func_ptrs->get_program_info_log(_id, ARRAY_COUNT(info_buf), NULL, info_buf);
-            printf(
-                "ERROR -> Shader pogram failed to compile!\n%s\n -- "
-                "------------------------------------------- -- ",
-                info_buf);
-        }
-        TOM_ASSERT(success);
-
-        // cleanup
-        _func_ptrs->delete_shader(vert_id);
-        _func_ptrs->delete_shader(frag_id);
-    }
 #endif
-#if 0
-    _vert_code = read_shader_code(vert_path);
-    _frag_code = read_shader_code(frag_path);
+    
+    _vert_code = vert_code;
+    _frag_code = frag_code;
 
-    u32 vert_id;
-    vert_id = glCreateShader(GL_VERTEX_SHADER);
-    // NOTE: need a pointless pointer to a pointer so I can pass my pointer as a pointer
-    const char *vert_code_ptr = _vert_code.c_str();
-    glShaderSource(vert_id, 1, &vert_code_ptr, NULL);
-    glCompileShader(vert_id);
-    check_shader_compile_errors(vert_id, shader::type::vertex);
+    init();
+}
 
-    u32 frag_id;
-    frag_id = glCreateShader(GL_FRAGMENT_SHADER);
-    // NOTE: need a pointless pointer to a pointer so I can pass my pointer as a pointer
-    const char *frag_code_ptr = _frag_code.c_str();
-    glShaderSource(frag_id, 1, &frag_code_ptr, NULL);
-    glCompileShader(frag_id);
-    check_shader_compile_errors(frag_id, shader::type::fragment);
-
-    _id = glCreateProgram();
-    glAttachShader(_id, vert_id);
-    glAttachShader(_id, frag_id);
-    glLinkProgram(_id);
-
-    // check for compilation errors
-    b32 success;
-    glGetProgramiv(_id, GL_COMPILE_STATUS, &success);
-    if (!success) {
-        char info_buf[1024];
-        glGetProgramInfoLog(_id, ARRAY_COUNT(info_buf), NULL, info_buf);
-        std::cout << "ERROR -> Shader pogram failed to compile!\n"
-                  << info_buf << "\n -- ------------------------------------------- -- "
-                  << std::endl;
-    }
-    TOM_ASSERT(success);
-
-    // cleanup
-    glDeleteShader(vert_id);
-    glDeleteShader(frag_id);
+shader::shader(void *func_ptrs, const platform_io plat_io, const char *vert_path,
+               const char *frag_path)
+{
+#if TOM_OPENGL
+    _func_ptrs = (ogl::wgl_func_ptrs *)(func_ptrs);
 #endif
+
+    auto vert_file_res = plat_io.platform_read_entire_file(0, vert_path);
+    auto frag_file_res = plat_io.platform_read_entire_file(0, frag_path);
+
+    if (vert_file_res.content_size != 0) {
+        _vert_code = (const char *)vert_file_res.contents;
+    } else {
+        printf("ERROR-> Failed to read Vertex shader!\n");
+        INVALID_CODE_PATH;
+    }
+
+    if (frag_file_res.content_size != 0) {
+        _frag_code = (const char *)frag_file_res.contents;
+    } else {
+        printf("ERROR-> Failed to read Fragment shader!\n");
+        INVALID_CODE_PATH;
+    }
+    
+    init();
+
 }
 
 shader::~shader()
@@ -93,13 +50,6 @@ shader::~shader()
     // TODO: delete the shader???
 }
 
-char *shader::read_shader_code(const char *path)
-{
-    char result[] = "empty";
-    // TODO: this
-
-    return result;
-}
 void shader::check_shader_compile_errors(u32 shader_id, shader::type type)
 {
     b32 success;
@@ -120,10 +70,52 @@ void shader::check_shader_compile_errors(u32 shader_id, shader::type type)
             } break;
         }
 
-        printf("shader failed to compile!\n%s\n -- ------------------------------------------- -- ",
-               info_buf);
+        printf(
+            "shader failed to compile!\n%s\n -- ------------------------------------------- "
+            "-- ",
+            info_buf);
     }
     TOM_ASSERT(success);
+}
+
+void shader::init()
+{
+    u32 vert_id;
+    vert_id = _func_ptrs->create_shader(GL_VERTEX_SHADER);
+    // NOTE: need a pointless pointer to a pointer so I can pass my pointer as a pointer
+    _func_ptrs->shader_source(vert_id, 1, &_vert_code, NULL);
+    _func_ptrs->compile_shader(vert_id);
+    check_shader_compile_errors(vert_id, shader::type::vertex);
+
+    u32 frag_id;
+    frag_id = _func_ptrs->create_shader(GL_FRAGMENT_SHADER);
+    // NOTE: need a pointless pointer to a pointer so I can pass my pointer as a pointer
+    _func_ptrs->shader_source(frag_id, 1, &_frag_code, NULL);
+    _func_ptrs->compile_shader(frag_id);
+    check_shader_compile_errors(frag_id, shader::type::fragment);
+
+    // _id = _func_ptrs->create_program();
+    _id = _func_ptrs->create_program();
+    _func_ptrs->attach_shader(_id, vert_id);
+    _func_ptrs->attach_shader(_id, frag_id);
+    _func_ptrs->link_program(_id);
+
+    // check for compilation errors
+    b32 success;
+    _func_ptrs->get_program_iv(_id, GL_COMPILE_STATUS, &success);
+    if (!success) {
+        char info_buf[1024];
+        _func_ptrs->get_program_info_log(_id, ARRAY_COUNT(info_buf), NULL, info_buf);
+        printf(
+            "ERROR -> Shader pogram failed to compile!\n%s\n -- "
+            "------------------------------------------- -- ",
+            info_buf);
+    }
+    TOM_ASSERT(success);
+
+    // cleanup
+    _func_ptrs->delete_shader(vert_id);
+    _func_ptrs->delete_shader(frag_id);
 }
 
 void shader::use()
@@ -135,7 +127,7 @@ void shader::use()
 #endif
 }
 
-void shader::set_b32(const char *name, const b32 val) const
+void shader::set_b32(const char *name, const b32 val) 
 {
 #if TOM_OPENGL
     s32 uni_loc = _func_ptrs->get_uniform_loc(_id, name);
@@ -145,7 +137,7 @@ void shader::set_b32(const char *name, const b32 val) const
 #endif
 }
 
-void shader::set_s32(const char *name, const s32 val) const
+void shader::set_s32(const char *name, const s32 val) 
 {
 #if TOM_OPENGL
     s32 uni_loc = _func_ptrs->get_uniform_loc(_id, name);
@@ -155,7 +147,7 @@ void shader::set_s32(const char *name, const s32 val) const
 #endif
 }
 
-void shader::set_f32(const char *name, const f32 val) const
+void shader::set_f32(const char *name, const f32 val) 
 {
 #if TOM_OPENGL
     s32 uni_loc = _func_ptrs->get_uniform_loc(_id, name);
@@ -165,7 +157,7 @@ void shader::set_f32(const char *name, const f32 val) const
 #endif
 }
 
-void shader::set_vec4(const char *name, v4 val) const
+void shader::set_vec4(const char *name, const v4 val) 
 {
 #if TOM_OPENGL
     s32 uni_loc = _func_ptrs->get_uniform_loc(_id, name);
@@ -175,7 +167,7 @@ void shader::set_vec4(const char *name, v4 val) const
 #endif
 }
 
-void shader::set_mat4(const char *name, m4 val) const
+void shader::set_mat4(const char *name, const m4 val) 
 {
 #if TOM_OPENGL
     // NOTE: remember that tranposed is called here to make the matrix column-major

@@ -1,15 +1,23 @@
 #ifndef TOMATO_GAME_HPP_
 #define TOMATO_GAME_HPP_
+
 #include <stb_image.h>
 
 #include "common.hpp"
-#include "shader.hpp"
 // #include "camera.hpp"
 #include "input.hpp"
 #include "opengl.hpp"
 
+
 namespace tom
 {
+struct shader;
+
+struct window_dims
+{
+    s32 width;
+    s32 height;
+};
 
 struct read_file_result
 {
@@ -25,23 +33,33 @@ using platform_write_entire_file = b32 (*)(thread_context *, const char *, u64, 
 using platform_get_ogl_func_ptr = void *(*)(const char *);
 #endif
 
+struct platform_io
+{
+    platform_free_file_memory platform_free_file_memory;
+    platform_read_entire_file platform_read_entire_file;
+    platform_write_entire_file platform_write_entire_file;
+#if TOM_OPENGL
+    platform_get_ogl_func_ptr ogl_get_func_ptr;
+#endif
+};
+
 namespace game
 {
 struct game_memory
 {
-    bool is_initialized;
+    b32 is_initialized;
+    b32 line_mode;
+
     u64 permanent_storage_size;
     void *permanent_storage;  // NOTE: required to be cleared to 0!
 
     u64 transient_storage_size;
     void *transient_storage;  // NOTE: required to be cleared to 0!
 
-    platform_free_file_memory platform_free_file_memory;
-    platform_read_entire_file platform_read_entire_file;
-    platform_write_entire_file platform_write_entire_file;
+    platform_io plat_io;
+    window_dims win_dims;
 
 #if TOM_OPENGL
-    platform_get_ogl_func_ptr ogl_get_func_ptr;
     ogl::wgl_func_ptrs ogl_func_ptrs;
 #endif
 };
@@ -58,8 +76,8 @@ struct game_input
 struct game_state
 {
     memory_arena arena;
-    bool g_running;
-    bool g_line_mode;
+    bool running;
+    bool line_mode;
 
     input::keyboard keyboard;
     // camera cam;
@@ -75,8 +93,8 @@ struct game_state
     v4 clear_color;
     u32 vbo, vao, ebo, text_1;
 
-    shader main_shader;
-    f32 verts[6];
+    shader *main_shader;
+    f32 verts[180];
 };
 
 struct offscreen_buffer
@@ -102,4 +120,5 @@ bool exit(thread_context *thread, game_memory *memory);
 
 }  // namespace game
 }  // namespace tom
+
 #endif

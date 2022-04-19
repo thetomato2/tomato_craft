@@ -97,21 +97,21 @@ add_library(stb STATIC
     )
 
 add_executable(tomato_craft WIN32
+    ${SOURCE_DIR}/glext.h
     ${SOURCE_DIR}/imgui_style.h
     ${SOURCE_DIR}/common.hpp
     # ${SOURCE_DIR}/camera.hpp
     ${SOURCE_DIR}/color.hpp
-    ${SOURCE_DIR}/shader.hpp
     ${SOURCE_DIR}/intrinsic.hpp
-    ${SOURCE_DIR}/game.hpp
     ${SOURCE_DIR}/math.hpp
-    ${SOURCE_DIR}/glext.h
-    ${SOURCE_DIR}/opengl.hpp
     ${SOURCE_DIR}/utils.hpp
+    ${SOURCE_DIR}/game.hpp
     ${SOURCE_DIR}/game.cpp
+    ${SOURCE_DIR}/opengl.hpp
     ${SOURCE_DIR}/opengl.cpp
+    ${SOURCE_DIR}/shader.hpp
     ${SOURCE_DIR}/shader.cpp
-    ${SOURCE_DIR}/win32_platform.cpp
+    ${SOURCE_DIR}/win32_platform.hpp
     ${SOURCE_DIR}/win32_platform.cpp
     )
 

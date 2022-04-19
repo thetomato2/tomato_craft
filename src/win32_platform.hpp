@@ -33,11 +33,6 @@ namespace tom
 namespace win32
 {
 
-struct window_dims
-{
-    s32 width;
-    s32 height;
-};
 
 struct offscreen_buffer
 {
