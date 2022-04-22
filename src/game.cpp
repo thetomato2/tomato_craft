@@ -1,12 +1,16 @@
 #include "game.hpp"
 #include "shader.hpp"
 
-#include "imgui_style.h"
-
 namespace tom
 {
 namespace game
 {
+
+internal void on_resize(game_state *state, window_dims win_dims)
+{
+    state->vp.proj =
+        mat::proj_persp(scast(f32, win_dims.width) / scast(f32, win_dims.height), state->fov);
+}
 
 bool init(thread_context *thread, game_memory *memory)
 {
@@ -38,6 +42,9 @@ bool init(thread_context *thread, game_memory *memory)
     const char *vert_path = "./main.vert";
     const char *frag_path = "./main.frag";
 
+    state->camera = PUSH_STRUCT(&state->arena, camera);
+    new (state->camera) camera();  // NOTE: placment new
+
     state->main_shader = PUSH_STRUCT(&state->arena, shader);
     new (state->main_shader)  // NOTE: placment new
         shader(&memory->ogl_func_ptrs, memory->plat_io, vert_path, frag_path);
@@ -47,7 +54,7 @@ bool init(thread_context *thread, game_memory *memory)
     ogl::enable(GL_DEPTH_TEST);
 
     // clang-format off
-        float verts[] = {
+        f32 verts[] = {
             -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
              0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
              0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
@@ -90,29 +97,32 @@ bool init(thread_context *thread, game_memory *memory)
             -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
             -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
         };
+        
+        s32 inds[36];
+        for (s32 i = 0; i < ARRAY_COUNT(inds); ++i) {
+            inds[i] = i;
+        }
+
     // clang-format on
 
-    // NOTE: this is stupid
-    f32 *ptr_1 = &state->verts[0];
-    f32 *ptr_2 = &verts[0];
-    for (s32 i = 0; i < 180; ++i) {
-        *ptr_1++ = *ptr_2++;
-    }
-
-    u32 vbo, vao;
+    u32 vbo, vao, ebo;
     gfx.gen_vert_arr(1, &vao);
     gfx.gen_buffers(1, &vbo);
+    gfx.gen_buffers(1, &ebo);
     gfx.bind_vert_arr(vao);
 
     gfx.bind_buffer(GL_ARRAY_BUFFER, vbo);
-    gfx.buffer_data(GL_ARRAY_BUFFER, sizeof(state->verts), state->verts, GL_STATIC_DRAW);
+    gfx.buffer_data(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_STATIC_DRAW);
+
+    gfx.bind_buffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+    gfx.buffer_data(GL_ELEMENT_ARRAY_BUFFER, sizeof(inds), inds, GL_STATIC_DRAW);
 
     // position attribute
     gfx.vertex_attrib_ptr(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)0);
-    gfx.enable_vertex_attrib_array(0);
+    gfx.enable_vert_attrib_array(0);
     // texture coord attribute
     gfx.vertex_attrib_ptr(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)(3 * sizeof(float)));
-    gfx.enable_vertex_attrib_array(1);
+    gfx.enable_vert_attrib_array(1);
 
     // load and create a texture
     // -------------------------
@@ -142,16 +152,19 @@ bool init(thread_context *thread, game_memory *memory)
     stbi_image_free(data);
 
     state->vbo    = vbo;
+    state->ebo    = ebo;
     state->vao    = vao;
     state->text_1 = texture1;
 
     state->main_shader->use();
     state->main_shader->set_s32("our_texture", 0);
 
-    state->vp.view = mat::translate(mat::identity(), { 0.0f, 0.0f, -100.0f });
+    state->fov = 1.0f;
 
-    state->vp.proj = mat::proj_persp(
-        scast(f32, memory->win_dims.width) / scast(f32, memory->win_dims.height), 55.0f);
+    state->camera->pos.z = 10.0f;
+    state->camera->speed = 5.0f;
+
+    state->scaler = 1.0f;
 
     state->clear_color = { 0.2f, 0.3f, 0.3f, 1.0f };
 
@@ -161,12 +174,13 @@ bool init(thread_context *thread, game_memory *memory)
 void update(thread_context *thread, game_memory *memory, game_input input, f32 dt)
 {
     game_state *state = (game_state *)memory->permanent_storage;
+    if (memory->win_resize || state->fov_old < state->fov - math::eps_f32 ||
+        state->fov_old > state->fov + math::eps_f32) {
+        on_resize(state, memory->win_dims);
+        memory->win_resize = false;
+    }
 
     ogl::wgl_func_ptrs gfx = memory->ogl_func_ptrs;
-
-    // glClearColor(state->clear_color.r, state->clear_color.g, state->clear_color.b,
-    //              state->clear_color.a);
-    // ogl::draw_arrays(GL_TRIANGLES, 0, 3);
 
     if (state->line_mode) {
         ogl::poly_mode(GL_FRONT_AND_BACK, GL_LINE);
@@ -174,9 +188,9 @@ void update(thread_context *thread, game_memory *memory, game_input input, f32 d
         ogl::poly_mode(GL_FRONT_AND_BACK, GL_FILL);
     }
 
-    // ImGui_ImplOpenGL3_NewFrame();
-    // ImGui_ImplGlfw_NewFrame();
-    // ImGui::NewFrame();
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplWin32_NewFrame();
+    ImGui::NewFrame();
 
     ogl::clear_color(state->clear_color.r, state->clear_color.g, state->clear_color.b,
                      state->clear_color.a);
@@ -187,60 +201,94 @@ void update(thread_context *thread, game_memory *memory, game_input input, f32 d
 
     gfx.use_program(state->main_shader->get_id());
 
-#if 0
-    f32 rot  = (sin(time) / 2.0f) + 0.5f;
-    f32 tran = (sin(time) / 2.0f);
-    rot *= 5;
-
-    constexpr f32 zoom_speed = 0.1f;
-    local_persist f32 z_loc  = 10.0f;
-    if (state->keyboard.w.ended_down) {
-        state->cam.process_keyboard(camera_movement::forward, dt);
-    } else if (state->keyboard.s.ended_down) {
-        state->cam.process_keyboard(camera_movement::backward, dt);
-    }
-    if (state->keyboard.a.ended_down) {
-        state->cam.process_keyboard(camera_movement::left, dt);
-    } else if (state->keyboard.d.ended_down) {
-        state->cam.process_keyboard(camera_movement::right, dt);
-    }
-
     {
-        ImGui::Begin("Blurp");
-        ImGui::ColorEdit4("Clear", (f32 *)&state->clear_color[0]);
-        ImGui::SliderFloat4("Cam Pos", (f32 *)&state->cam.position[0], -10.0f, 10.0f);
-        ImGui::SliderFloat("Cam Zoom", &state->cam.zoom, 0.0f, 100.0f);
+        ImGui::Begin("Scene");
+        ImGui::ColorEdit4("Clear", (f32 *)&state->clear_color.e[0]);
+        ImGui::SliderFloat("fov", &state->fov, 0.01f, 2.0f);
+        ImGui::SliderFloat3("model loc", &state->model_loc.e[0], -10.0f, 10.0f);
+        ImGui::SliderAngle("x rot", &state->model_rot.x);
+        ImGui::SliderAngle("y rot", &state->model_rot.y);
+        ImGui::SliderAngle("z rot", &state->model_rot.z);
+        ImGui::SliderFloat("scale", &state->scaler, 0.1f, 3.0f);
+        ImGui::SliderInt("inds", &state->inds, 0, 12);
         ImGui::End();
     }
 
-    constexpr f32 focal_speed   = 1.0f;
-    local_persist f32 focal_len = 10.0f;
-
-    f32 angle = 20.0f * time;
-    // glm::mat4 model =
-    //     glm::rotate(glm::mat4(1.0f), glm::radians(angle), glm::vec3(1.0f, 0.0f, 1.0f));
-    state->vp.view = state->cam.get_view_matrix();
-
-    state->vp.proj =
-        glm::perspective(glm::radians(state->cam.zoom), (f32)g_width / (f32)g_height, 0.1f, 100.0f);
-#endif
+    {
+        ImGui::Begin("Camera");
+        ImGui::SliderFloat("x", &state->camera->pos.x, -100.0f, 100.0f);
+        ImGui::SliderFloat("y", &state->camera->pos.y, -100.0f, 100.0f);
+        ImGui::SliderFloat("z", &state->camera->pos.z, -100.0f, 100.0f);
+        ImGui::SliderFloat("speed", &state->camera->speed, -100.0f, 100.0f);
+        ImGui::End();
+    }
 
     local_persist f32 time_total = 0.0f;
-    time_total += dt * 0.05f;
+    time_total += dt * 0.01f;
 
     m4 model = mat::identity();
-    model    = model * mat::rot_x(45.0f);
-    model    = model * mat::rot_z(45.0f * time_total);
+    model    = mat::translate(model, state->model_loc);
+    model    = mat::rot_x(model, state->model_rot.x);
+    model    = mat::rot_y(model, state->model_rot.y);
+    model    = mat::rot_z(model, state->model_rot.z);
+    model    = mat::scale(model, state->scaler);
+
+    state->vp.view = state->camera->get_view();
+
+    if (input::is_key_up(input.keyboard.d4)) {
+        mat::print_m4(state->vp.view);
+    }
+
+    if (input::is_key_down(input.keyboard.w)) {
+        state->camera->move(camera::mov_dir::backward, dt);
+    }
+    if (input::is_key_down(input.keyboard.s)) {
+        state->camera->move(camera::mov_dir::forward, dt);
+    }
+    if (input::is_key_down(input.keyboard.a)) {
+        state->camera->move(camera::mov_dir::left, dt);
+    }
+    if (input::is_key_down(input.keyboard.d)) {
+        state->camera->move(camera::mov_dir::right, dt);
+    }
+    if (input::is_key_down(input.keyboard.z)) {
+        state->camera->move(camera::mov_dir::down, dt);
+    }
+    if (input::is_key_down(input.keyboard.c)) {
+        state->camera->move(camera::mov_dir::up, dt);
+    }
+
+    m4 vp = state->vp.proj * state->vp.view;
+
     state->main_shader->set_mat4("model", model);
-    state->main_shader->set_mat4("view", state->vp.view);
-    state->main_shader->set_mat4("proj", state->vp.proj);
+    state->main_shader->set_mat4("vp", vp);
 
-    gfx.bind_vert_arr(state->vao);
-    ogl::draw_arrays(GL_TRIANGLES, 0, 36);
+    // gfx.bind_vert_arr(state->vao);
+    gfx.bind_buffer(GL_ARRAY_BUFFER, state->vbo);
+    gfx.bind_buffer(GL_ELEMENT_ARRAY_BUFFER, state->ebo);
+    // position attribute
+    gfx.enable_vert_attrib_array(0);
+    gfx.vertex_attrib_ptr(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)0);
+    // texture coord attribute
+    gfx.enable_vert_attrib_array(1);
+    gfx.vertex_attrib_ptr(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)(3 * sizeof(float)));
 
-    // ImGui::Render();
-    // // NOTE: this is where ImGui is drawn
-    // ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+    local_persist bool ele_sw = true;
+
+    if (input::is_key_up(input.keyboard.d1)) {
+        ele_sw = !ele_sw;
+    }
+
+    if (ele_sw)
+        ogl::draw_arrays(GL_TRIANGLES, 0, 36);
+    else
+        ogl::draw_elements(GL_TRIANGLES, state->inds * 3, GL_UNSIGNED_INT, 0);
+
+    gfx.disable_vert_attrib_array(0);
+    gfx.disable_vert_attrib_array(1);
+    ImGui::Render();
+    // NOTE: this is where ImGui is drawn
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
 // NOTE: clean up here

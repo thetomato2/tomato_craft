@@ -6,9 +6,21 @@
 #include <cstdint>
 #include <cstdio>
 
+#ifndef NOMINMAX
+    #define NOMINMAX
+#endif
+// TODO: use this, right now there is some sleep fuction in the platform layer this turns off
+// #define WIN32_LEAN_AND_MEAN 0
+#include <windows.h>
+
 #include <imgui.h>
 #include <imgui_impl_win32.h>
 #include <imgui_impl_opengl3.h>
+
+#include <GL/gl.h>
+#include "GL/glext.h"
+#include "GL/wglext.h"
+#include <tchar.h>
 
 // NOTE: for grep purposes
 #define scast(t, v) static_cast<t>(v)

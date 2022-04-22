@@ -97,10 +97,12 @@ add_library(stb STATIC
     )
 
 add_executable(tomato_craft WIN32
-    ${SOURCE_DIR}/glext.h
+    ${SOURCE_DIR}/GL/glext.h
+    ${SOURCE_DIR}/GL/wglext.h
     ${SOURCE_DIR}/imgui_style.h
     ${SOURCE_DIR}/common.hpp
-    # ${SOURCE_DIR}/camera.hpp
+    ${SOURCE_DIR}/camera.hpp
+    ${SOURCE_DIR}/camera.cpp
     ${SOURCE_DIR}/color.hpp
     ${SOURCE_DIR}/intrinsic.hpp
     ${SOURCE_DIR}/math.hpp
@@ -130,7 +132,7 @@ target_compile_options(tomato_craft  PRIVATE
 
 target_compile_definitions(tomato_craft  PRIVATE ${COMPILE_DEFS})
 
-target_link_libraries(tomato_craft ${COMMON_LINKER_LIBS} imgui stb)
+target_link_libraries(tomato_craft PRIVATE ${COMMON_LINKER_LIBS} imgui stb)
 
 target_link_options(tomato_craft PRIVATE
     ${LINKER_FLAGS}

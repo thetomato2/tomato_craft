@@ -12,21 +12,11 @@
 //#define NODRAWTEXT
 //#define NOGDI
 //#define NOBITMAP
-//#define WIN32_LEAN_AND_MEAN
 
 // Use the C++ standard templated min/max
-#ifndef NOMINMAX
-    #define NOMINMAX
-#endif
-#include <windows.h>
-#include <tchar.h>
 #include <xinput.h>
 #include <mmdeviceapi.h>
 #include <audioclient.h>
-#if TOM_OPENGL
-    #include <GL/gl.h>
-    #include "glext.h"
-#endif
 
 namespace tom
 {

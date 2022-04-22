@@ -1,8 +1,10 @@
 #include "win32_platform.hpp"
 
-// ===============================================================================================
-// #GLOBALS
-// ===============================================================================================
+#include "imgui_style.h"
+
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam,
+                                                             LPARAM lParam);
+
 namespace tom
 {
 namespace win32
@@ -13,6 +15,7 @@ global_var constexpr f32 g_target_frames_per_second = 1.f / scast(f32, g_game_up
 
 global_var bool running;
 global_var bool g_pause;
+global_var bool g_resize;
 global_var bool g_debug_show_cursor;
 
 WINDOWPLACEMENT g_win_pos = { sizeof(g_win_pos) };
@@ -325,12 +328,16 @@ internal void do_controller_input(game::game_input &old_input, game::game_input 
 
     // keyboard
     process_keyboard_message(new_input.keyboard.enter, ::GetKeyState(keys::enter) & (1 << 15));
+    process_keyboard_message(new_input.keyboard.q, ::GetKeyState(keys::q) & (1 << 15));
+    process_keyboard_message(new_input.keyboard.e, ::GetKeyState(keys::e) & (1 << 15));
     process_keyboard_message(new_input.keyboard.w, ::GetKeyState(keys::w) & (1 << 15));
     process_keyboard_message(new_input.keyboard.a, ::GetKeyState(keys::a) & (1 << 15));
     process_keyboard_message(new_input.keyboard.s, ::GetKeyState(keys::s) & (1 << 15));
     process_keyboard_message(new_input.keyboard.d, ::GetKeyState(keys::d) & (1 << 15));
     process_keyboard_message(new_input.keyboard.p, ::GetKeyState(keys::p) & (1 << 15));
     process_keyboard_message(new_input.keyboard.t, ::GetKeyState(keys::t) & (1 << 15));
+    process_keyboard_message(new_input.keyboard.c, ::GetKeyState(keys::c) & (1 << 15));
+    process_keyboard_message(new_input.keyboard.z, ::GetKeyState(keys::z) & (1 << 15));
     process_keyboard_message(new_input.keyboard.d1, ::GetKeyState(keys::d1) & (1 << 15));
     process_keyboard_message(new_input.keyboard.d2, ::GetKeyState(keys::d2) & (1 << 15));
     process_keyboard_message(new_input.keyboard.d3, ::GetKeyState(keys::d3) & (1 << 15));
@@ -560,6 +567,8 @@ internal void process_pending_messages(win32_state &state, game::game_input &inp
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
+    if (ImGui_ImplWin32_WndProcHandler(hwnd, msg, wparam, lparam)) return true;
+
     LRESULT result = 0;
     switch (msg) {
         case WM_SETCURSOR: {
@@ -571,6 +580,11 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
         } break;
         case WM_SIZE: {
             g_win_dim = get_window_dimensions(hwnd);
+#if TOM_OPENGL
+            glViewport(0, 0, g_win_dim.width, g_win_dim.height);
+#endif
+            g_resize = true;
+
             // ResizeDIBSection(g_backBuffer, g_winDims.width, g_winDims.height);
         } break;
         case WM_DESTROY: {
@@ -675,8 +689,8 @@ s32 win32_main(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, s
     g_debug_show_cursor = false;
 #endif
 
-    constexpr s32 win_width  = 960;
-    constexpr s32 win_height = 540;
+    constexpr s32 win_width  = 1280;
+    constexpr s32 win_height = 720;
 
     resize_dib_section(g_back_buffer, win_width, win_height);
 
@@ -808,11 +822,28 @@ s32 win32_main(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, s
     thread_context thread {};
     game::init(&thread, &memory);
 
+    // ImGui
+    //  TODO: where to put this?
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO &io = ImGui::GetIO();
+    (void)io;
+    ImGui_ImplWin32_Init(hwnd);
+    ImGui_ImplOpenGL3_Init("#version 130");
+    set_ImGui_style();
+
     // ===========================================================================================
     // #MAIN LOOP
     // ===========================================================================================
     while (running) {
         memory.win_dims = g_win_dim;
+
+        if (g_resize) {
+            memory.win_dims.width  = g_win_dim.width;
+            memory.win_dims.height = g_win_dim.height;
+            memory.win_resize      = true;
+            g_resize               = false;
+        }
 
         do_controller_input(*old_input, *new_input, hwnd);
         process_pending_messages(state, *new_input);
@@ -923,9 +954,12 @@ s32 win32_main(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, s
     // clean up
     game::exit(&thread, &memory);
 
+    ImGui_ImplOpenGL3_Shutdown();
 #if TOM_OPENGL
     exit_wgl(ogl_rc);
 #endif
+    ImGui::DestroyContext();
+    // ImGui_ImplWin32_Shutdown();
 
     ReleaseDC(hwnd, hdc);
     DestroyWindow(hwnd);

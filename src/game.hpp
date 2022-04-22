@@ -4,10 +4,9 @@
 #include <stb_image.h>
 
 #include "common.hpp"
-// #include "camera.hpp"
+#include "camera.hpp"
 #include "input.hpp"
 #include "opengl.hpp"
-
 
 namespace tom
 {
@@ -58,6 +57,7 @@ struct game_memory
 
     platform_io plat_io;
     window_dims win_dims;
+    b32 win_resize;
 
 #if TOM_OPENGL
     ogl::wgl_func_ptrs ogl_func_ptrs;
@@ -88,13 +88,24 @@ struct game_state
         m4 proj;
     } vp;
 
+    camera *camera;
+
+    f32 fov;
+    f32 fov_old;
+
     f32 time_last;
 
     v4 clear_color;
     u32 vbo, vao, ebo, text_1;
 
     shader *main_shader;
-    f32 verts[180];
+
+    f32 scaler;
+
+    v3 model_loc;
+    v3 model_rot;
+
+    s32 inds;
 };
 
 struct offscreen_buffer

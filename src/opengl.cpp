@@ -23,8 +23,10 @@ bool init_func_ptrs(wgl_func_ptrs *func_ptrs, get_ogl_func_ptr get_func_ptr)
     func_ptrs->bind_buffer    = (PFNGLBINDBUFFERPROC)get_func_ptr("glBindBuffer");
     func_ptrs->buffer_data    = (PFNGLBUFFERDATAPROC)get_func_ptr("glBufferData");
     func_ptrs->get_attrib_loc = (PFNGLGETATTRIBLOCATIONPROC)get_func_ptr("glGetAttribLocation");
-    func_ptrs->enable_vertex_attrib_array =
+    func_ptrs->enable_vert_attrib_array =
         (PFNGLENABLEVERTEXATTRIBARRAYPROC)get_func_ptr("glEnableVertexAttribArray");
+    func_ptrs->disable_vert_attrib_array =
+        (PFNGLDISABLEVERTEXATTRIBARRAYPROC)get_func_ptr("glDisableVertexAttribArray");
     func_ptrs->get_uniform_loc = (PFNGLGETUNIFORMLOCATIONPROC)get_func_ptr("glGetUniformLocation");
     func_ptrs->set_uniform_s32 = (PFNGLUNIFORM1IPROC)get_func_ptr("glUniform1i");
     func_ptrs->set_uniform_f32 = (PFNGLUNIFORM1FPROC)get_func_ptr("glUniform1f");
@@ -33,11 +35,11 @@ bool init_func_ptrs(wgl_func_ptrs *func_ptrs, get_ogl_func_ptr get_func_ptr)
     func_ptrs->delete_shader   = (PFNGLDELETESHADERPROC)get_func_ptr("glDeleteShader");
     func_ptrs->vertex_attrib_ptr =
         (PFNGLVERTEXATTRIBPOINTERPROC)get_func_ptr("glVertexAttribPointer");
-    func_ptrs->gen_vert_arr  = (PFNGLGENVERTEXARRAYSPROC)get_func_ptr("glGenVertexArrays");
-    func_ptrs->bind_vert_arr = (PFNGLBINDVERTEXARRAYPROC)get_func_ptr("glBindVertexArray");
-    func_ptrs->gen_mipmap    = (PFNGLGENERATEMIPMAPPROC)get_func_ptr("glGenerateMipmap");
-    func_ptrs->active_tex    = (PFNGLACTIVETEXTUREPROC)get_func_ptr("glActiveTexture");
-
+    func_ptrs->gen_vert_arr     = (PFNGLGENVERTEXARRAYSPROC)get_func_ptr("glGenVertexArrays");
+    func_ptrs->bind_vert_arr    = (PFNGLBINDVERTEXARRAYPROC)get_func_ptr("glBindVertexArray");
+    func_ptrs->gen_mipmap       = (PFNGLGENERATEMIPMAPPROC)get_func_ptr("glGenerateMipmap");
+    func_ptrs->active_tex       = (PFNGLACTIVETEXTUREPROC)get_func_ptr("glActiveTexture");
+    func_ptrs->validate_program = (PFNGLVALIDATEPROGRAMPROC)get_func_ptr("glValidateProgram");
 
     return true;
 }

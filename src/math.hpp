@@ -564,7 +564,7 @@ inline v3 cross(const v3 a, const v3 b)
 {
     v3 res;
 
-    res.x = a.y * b.y - a.z * b.y;
+    res.x = a.y * b.z - a.z * b.y;
     res.y = a.z * b.x - a.x * b.z;
     res.z = a.x * b.y - a.y * b.x;
 
@@ -643,6 +643,8 @@ inline f32 length(const v4 a)
 inline v3 normalize(const v3 a)
 {
     f32 len = length(a);
+    TOM_ASSERT(len != 0.0f);
+
     v3 res;
 
     res.x = a.x / len;
@@ -668,6 +670,7 @@ inline m4 operator*(m4 a, m4 b)
     m4 res = {};
 
     // NOTE: this should unroll but...
+    // TODO: unroll this and use simd
     for (s32 r = 0; r < 4; ++r) {
         for (s32 c = 0; c < 4; ++c) {
             for (s32 i = 0; i < 4; ++i) {
@@ -682,8 +685,6 @@ inline m4 operator*(m4 a, m4 b)
 inline v3 transform(m4 a, v3 p, f32 Pw = 1.0f)
 {
     v3 res = {};
-
-    // NOTE: this should unroll but...
 
     res.x = p.x * a.e[0][0] + p.y * a.e[0][1] + p.z * a.e[0][2] + Pw * a.e[0][3];
     res.y = p.x * a.e[1][0] + p.y * a.e[1][1] + p.z * a.e[1][2] + Pw * a.e[1][3];
@@ -701,14 +702,12 @@ inline v3 operator*(m4 a, v3 p)
 
 namespace mat
 {
-inline m4 identity()
+inline m4 identity(f32 a = 1.0f)
 {
-    // clang-format off
-    m4 res = { { { 1, 0, 0, 0 }, 
-                 { 0, 1, 0, 0 }, 
-                 { 0, 0, 1, 0 }, 
-                 { 0, 0, 0, 1 } } };
-    // clang-format on
+    m4 res = { { { a, 0.0f, 0.0f, 0.0f },
+                 { 0.0f, a, 0.0f, 0.0f },
+                 { 0.0f, 0.0f, a, 0.0f },
+                 { 0.0f, 0.0f, 0.0f, 1.0f } } };
 
     return res;
 }
@@ -718,15 +717,17 @@ inline m4 rot_x(f32 a)
     f32 c = cos(a);
     f32 s = sin(a);
 
-    // clang-format off
-    m4 res = { { { 1, 0, 0, 0 }, 
-                 { 0, c,-s, 0 }, 
-                 { 0, s, c, 0 }, 
-                 { 0, 0, 0, 1 } } };
-
-    // clang-format on
+    m4 res = { { { 1.0f, 0.0f, 0.0f, 0.0f },
+                 { 0.0f, c, -s, 0.0f },
+                 { 0.0f, s, c, 0.0f },
+                 { 0.0f, 0.0f, 0.0f, 1.0f } } };
 
     return res;
+}
+
+inline m4 rot_x(m4 a, f32 b)
+{
+    return a * rot_x(b);
 }
 
 inline m4 rot_y(f32 a)
@@ -734,28 +735,17 @@ inline m4 rot_y(f32 a)
     f32 c = cos(a);
     f32 s = sin(a);
 
-    // clang-format off
-    m4 res = { { { c, 0, s, 0 }, 
-                 { 0, 1, 0, 0 }, 
-                 {-s, 0, c, 0 }, 
-                 { 0, 0, 0, 1 } } };
-
-    // clang-format on
+    m4 res = { { { c, 0.0f, s, 0.0f },
+                 { 0.0f, 1.0f, 0.0f, 0.0f },
+                 { -s, 0.0f, c, 0.0f },
+                 { 0.0f, 0.0f, 0.0f, 1.0f } } };
 
     return res;
 }
 
 inline m4 rot_y(m4 a, f32 b)
 {
-    f32 c = cos(b);
-    f32 s = sin(b);
-
-    a.e[0][0] *= c;
-    a.e[0][2] *= s;
-    a.e[2][0] *= -s;
-    a.e[2][3] *= c;
-
-    return a;
+    return a * rot_y(b);
 }
 
 inline m4 rot_z(f32 a)
@@ -763,13 +753,24 @@ inline m4 rot_z(f32 a)
     f32 c = cos(a);
     f32 s = sin(a);
 
-    // clang-format off
-    m4 res = { { { c,-s, 0, 0 }, 
-                 { s, c, 0, 0 }, 
-                 { 0, 0, 1, 0 }, 
-                 { 0, 0, 0, 1 } } };
+    m4 res = { { { c, -s, 0.0f, 0.0f },
+                 { s, c, 0.0f, 0.0f },
+                 { 0.0f, 0.0f, 1.0f, 0.0f },
+                 { 0.0f, 0.0f, 0.0f, 1.0f } } };
 
-    // clang-format on
+    return res;
+}
+
+inline m4 rot_z(m4 a, f32 b)
+{
+    return a * rot_z(b);
+}
+
+inline m4 scale(const m4 a, const f32 b)
+{
+    m4 res = mat::identity(b);
+
+    res = a * res;
 
     return res;
 }
@@ -806,12 +807,10 @@ inline m4 proj_persp(f32 aspect_ratio, f32 focal_len)
     f32 e = (n + f) / (n - f);
 #endif
 
-    // clang-format off
-    m4 res = { { { a * c,     0.0f,  0.0f, 0.0f }, 
-                 {     0.0f, b * c,  0.0f, 0.0f }, 
-                 {     0.0f,  0.0f,     d,   e }, 
-                 {     0.0f,   0.0f, -1.0f, 0.0f } } };
-    // clang-format on
+    m4 res = { { { a * c, 0.0f, 0.0f, 0.0f },
+                 { 0.0f, b * c, 0.0f, 0.0f },
+                 { 0.0f, 0.0f, d, e },
+                 { 0.0f, 0.0f, -1.0f, 0.0f } } };
 
     return res;
 }
@@ -821,36 +820,40 @@ inline m4 proj_ortho(f32 aspect_ratio)
     f32 a = 1.0f;
     f32 b = aspect_ratio;
 
-    // clang-format off
-    m4 res = { { { a, 0, 0, 0 }, 
-                 { 0, b, 0, 0 }, 
-                 { 0, 0, 1, 0 }, 
-                 { 0, 0, 0, 1 } } };
-    // clang-format on
+    m4 res = { { { a, 0.0f, 0.0f, 0.0f },
+                 { 0.0f, b, 0.0f, 0.0f },
+                 { 0.0f, 0.0f, 1.0f, 0.0f },
+                 { 0.0f, 0.0f, 0.0f, 1.0f } } };
 
     return res;
 }
 
 inline m4 col_3x3(v3 x, v3 y, v3 z)
 {
-    // clang-format off
-    m4 res = { { { x.x, y.x, z.x, 0 }, 
-                 { x.y, y.y, z.y, 0 }, 
-                 { x.z, y.z, z.z, 0 }, 
-                 {   0,   0,   0, 1 } } };
-    // clang-format on
+    m4 res = { { { x.x, y.x, z.x, 0.0f },
+                 { x.y, y.y, z.y, 0.0f },
+                 { x.z, y.z, z.z, 0.0f },
+                 { 0.0f, 0.0f, 0.0f, 1.0f } } };
 
     return res;
 }
 
 inline m4 row_3x3(v3 x, v3 y, v3 z)
 {
-    // clang-format off
-    m4 res = { { { x.x, x.y, x.z, 0 }, 
-                 { y.x, y.y, y.z, 0 }, 
-                 { z.x, z.y, z.z, 0 }, 
-                 {   0,   0,   0, 1 } } };
-    // clang-format on
+    m4 res = { { { x.x, x.y, x.z, 0.0f },
+                 { y.x, y.y, y.z, 0.0f },
+                 { z.x, z.y, z.z, 0.0f },
+                 { 0.0f, 0.0f, 0.0f, 1.0f } } };
+
+    return res;
+}
+inline m4 translate(v3 t)
+{
+    m4 res = mat::identity();
+
+    res.e[0][3] = t.x;
+    res.e[1][3] = t.y;
+    res.e[2][3] = t.z;
 
     return res;
 }
@@ -880,11 +883,23 @@ inline v3 get_row(m4 a, u32 r)
     return res;
 }
 
-inline m4 cam_transform(v3 x, v3 y, v3 z, v3 p)
+inline m4 cam_transform(v3 target, v3 up, v3 pos)
 {
-    m4 res = row_3x3(x, y, z);
+    v3 n = vec::normalize(target);
+    v3 u = vec::normalize(vec::cross(up, n));
+    v3 v = vec::cross(n, u);
 
-    res = translate(res, -(res * p));
+    m4 res = row_3x3(u, v, n) * mat::translate(-pos);
+
+    return res;
+}
+
+inline m4 cam_to_view(v3 pos, v3 u, v3 v, v3 n)
+{
+    m4 res = { { { u.x, u.y, u.z, -pos.x },
+                 { v.x, v.y, v.z, -pos.y },
+                 { n.x, n.y, n.z, -pos.z },
+                 { 0.0f, 0.0f, 0.0f, 1.0f } } };
 
     return res;
 }
@@ -896,14 +911,20 @@ inline m4 loot_at(v3 from, v3 to)
     v3 right   = vec::cross(vec::normalize(t), forward);
     v3 up      = vec::cross(forward, right);
 
-    // clang-format off
-    m4 res = { { { right.x,   right.y,    right.z,   0 }, 
-                 { up.x,      up.y,       up.z,      0 }, 
-                 { forward.x, forward.y,  forward.z, 0 }, 
-                 { from.x,    from.y,     from.z,    1 } } };
-    // clang-format on
+    m4 res = { { { right.x, right.y, right.z, 0.0f },
+                 { up.x, up.y, up.z, 0.0f },
+                 { forward.x, forward.y, forward.z, 0.0f },
+                 { from.x, from.y, from.z, 1.0f } } };
 
     return res;
+}
+
+// TODO: ifdef stdio.h?
+inline void print_m4(m4 a)
+{
+    for (s32 i = 0; i < 4; ++i) {
+        printf("%f, %f, %f, %f\n", a.e[i][0], a.e[i][1], a.e[i][2], a.e[i][3]);
+    }
 }
 
 }  // namespace mat
@@ -1123,6 +1144,8 @@ inline bool intersect(rect3 a, rect3 b)
 // ===============================================================================================
 namespace math
 {
+global_var constexpr f32 eps_f32 = 0.0001f;
+
 template<typename T>
 T square(const T val)
 {

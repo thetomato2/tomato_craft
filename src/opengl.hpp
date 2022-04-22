@@ -2,10 +2,6 @@
 #define TOMATO_OPENGL_HPP_
 #include "common.hpp"
 
-#include <windows.h>
-#include <GL/gl.h>
-#include "glext.h"
-
 namespace tom
 {
 namespace ogl
@@ -29,7 +25,8 @@ struct wgl_func_ptrs
     PFNGLBINDBUFFERPROC bind_buffer;
     PFNGLBUFFERDATAPROC buffer_data;
     PFNGLGETATTRIBLOCATIONPROC get_attrib_loc;
-    PFNGLENABLEVERTEXATTRIBARRAYPROC enable_vertex_attrib_array;
+    PFNGLENABLEVERTEXATTRIBARRAYPROC enable_vert_attrib_array;
+    PFNGLDISABLEVERTEXATTRIBARRAYPROC disable_vert_attrib_array;
     PFNGLVERTEXATTRIBPOINTERPROC vertex_attrib_ptr;
     PFNGLGETUNIFORMLOCATIONPROC get_uniform_loc;
     PFNGLUNIFORM1IPROC set_uniform_s32;
@@ -41,6 +38,7 @@ struct wgl_func_ptrs
     PFNGLBINDVERTEXARRAYPROC bind_vert_arr;
     PFNGLGENERATEMIPMAPPROC gen_mipmap;
     PFNGLACTIVETEXTUREPROC active_tex;
+    PFNGLVALIDATEPROGRAMPROC validate_program;
 };
 
 using get_ogl_func_ptr = void *(*)(const char *);
@@ -49,6 +47,7 @@ using get_ogl_func_ptr = void *(*)(const char *);
 const auto clear_color    = glClearColor;
 const auto clear          = glClear;
 const auto draw_arrays    = glDrawArrays;
+const auto draw_elements  = glDrawElements;
 const auto gen_tex        = glGenTextures;
 const auto bind_tex       = glBindTexture;
 const auto tex_params_s32 = glTexParameteri;

@@ -10,7 +10,7 @@ shader::shader(void *func_ptrs, const char *vert_code, const char *frag_code)
 #if TOM_OPENGL
     _func_ptrs = (ogl::wgl_func_ptrs *)(func_ptrs);
 #endif
-    
+
     _vert_code = vert_code;
     _frag_code = frag_code;
 
@@ -40,9 +40,8 @@ shader::shader(void *func_ptrs, const platform_io plat_io, const char *vert_path
         printf("ERROR-> Failed to read Fragment shader!\n");
         INVALID_CODE_PATH;
     }
-    
-    init();
 
+    init();
 }
 
 shader::~shader()
@@ -102,6 +101,8 @@ void shader::init()
 
     // check for compilation errors
     b32 success;
+
+    _func_ptrs->validate_program(_id);
     _func_ptrs->get_program_iv(_id, GL_COMPILE_STATUS, &success);
     if (!success) {
         char info_buf[1024];
@@ -127,52 +128,57 @@ void shader::use()
 #endif
 }
 
-void shader::set_b32(const char *name, const b32 val) 
+void shader::set_b32(const char *name, const b32 val)
 {
 #if TOM_OPENGL
     s32 uni_loc = _func_ptrs->get_uniform_loc(_id, name);
+    TOM_ASSERT(uni_loc != -1); // failed to find uniform
     _func_ptrs->set_uniform_s32(uni_loc, val);
 #else
     INVALID_CODE_PATH;
 #endif
 }
 
-void shader::set_s32(const char *name, const s32 val) 
+void shader::set_s32(const char *name, const s32 val)
 {
 #if TOM_OPENGL
     s32 uni_loc = _func_ptrs->get_uniform_loc(_id, name);
+    TOM_ASSERT(uni_loc != -1); // failed to find uniform
     _func_ptrs->set_uniform_s32(uni_loc, val);
 #else
     INVALID_CODE_PATH;
 #endif
 }
 
-void shader::set_f32(const char *name, const f32 val) 
+void shader::set_f32(const char *name, const f32 val)
 {
 #if TOM_OPENGL
     s32 uni_loc = _func_ptrs->get_uniform_loc(_id, name);
+    TOM_ASSERT(uni_loc != -1); // failed to find uniform
     _func_ptrs->set_uniform_f32(uni_loc, val);
 #else
     INVALID_CODE_PATH;
 #endif
 }
 
-void shader::set_vec4(const char *name, const v4 val) 
+void shader::set_vec4(const char *name, const v4 val)
 {
 #if TOM_OPENGL
     s32 uni_loc = _func_ptrs->get_uniform_loc(_id, name);
+    TOM_ASSERT(uni_loc != -1); // failed to find uniform
     _func_ptrs->set_uniform_v4(uni_loc, 1, &val.e[0]);
 #else
     INVALID_CODE_PATH;
 #endif
 }
 
-void shader::set_mat4(const char *name, const m4 val) 
+void shader::set_mat4(const char *name, const m4 val)
 {
 #if TOM_OPENGL
-    // NOTE: remember that tranposed is called here to make the matrix column-major
+    // NOTE: tranposed is called here to make the matrix column-major for OpenGL
     m4 transposed = mat::transpose(val);
     s32 uni_loc   = _func_ptrs->get_uniform_loc(_id, name);
+    TOM_ASSERT(uni_loc != -1); // failed to find uniform
     _func_ptrs->set_uniform_m4(uni_loc, 1, GL_FALSE, &transposed.e[0][0]);
 #else
     INVALID_CODE_PATH;

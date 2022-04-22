@@ -2,7 +2,6 @@
 #define TOMATO_INPUT_HPP_
 #include "common.hpp"
 
-
 namespace tom
 {
 namespace input
@@ -45,7 +44,7 @@ struct mouse
 
 struct keyboard
 {
-    global_var constexpr u32 key_cnt = 16;
+    global_var constexpr u32 key_cnt = 19;
     union
     {
         key keys[key_cnt];
@@ -62,11 +61,14 @@ struct keyboard
             key r;
             key t;
             key q;
+            key e;
             key w;
             key a;
             key s;
             key d;
             key p;
+            key z;
+            key c;
         };
     };
 };
