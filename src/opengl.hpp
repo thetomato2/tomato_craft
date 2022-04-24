@@ -54,6 +54,7 @@ const auto tex_params_s32 = glTexParameteri;
 const auto tex_img_2d     = glTexImage2D;
 const auto poly_mode      = glPolygonMode;
 const auto enable         = glEnable;
+const auto get_int4       = glGetIntegerv;
 
 bool init_func_ptrs(wgl_func_ptrs *func_ptrs, get_ogl_func_ptr get_func_ptr);
 

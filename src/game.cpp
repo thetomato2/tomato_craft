@@ -134,14 +134,14 @@ bool init(thread_context *thread, game_memory *memory)
     // load image, create texture and generate mipmaps
     s32 width, height, n_channels;
     stbi_set_flip_vertically_on_load(true);
-    byt *data = stbi_load("../../../assets/images/win11.png", &width, &height, &n_channels, 0);
+    byt *data = stbi_load("../../../assets/images/dirt.png", &width, &height, &n_channels, 0);
     if (data) {
         ogl::tex_img_2d(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE,
                         data);
         gfx.gen_mipmap(GL_TEXTURE_2D);
     } else {
         printf("Failed to load texture\n");
-        INVALID_CODE_PATH;
+       INVALID_CODE_PATH;
     }
     stbi_image_free(data);
 
@@ -158,9 +158,16 @@ bool init(thread_context *thread, game_memory *memory)
     state->camera.pos.z = 10.0f;
     state->camera.speed = 5.0f;
 
-    state->scaler = 1.0f;
+    state->scaler    = 1.0f;
+    state->inds      = 12;
+    state->n_cubes   = 1;
+    state->n_cubes_z = 1;
 
     state->clear_color = { 0.2f, 0.3f, 0.3f, 1.0f };
+
+    s32 n_tex_units = 0;
+    ogl::get_int4(GL_MAX_TEXTURE_UNITS, &n_tex_units);
+    printf("Max Texture Units: %d\n", n_tex_units);
 
     return true;
 }
@@ -205,6 +212,8 @@ void update(thread_context *thread, game_memory *memory, game_input input, f32 d
         ImGui::SliderAngle("z rot", &state->model_rot.z);
         ImGui::SliderFloat("scale", &state->scaler, 0.1f, 3.0f);
         ImGui::SliderInt("inds", &state->inds, 0, 12);
+        ImGui::SliderInt("num cubes", &state->n_cubes, 1, 100);
+        ImGui::SliderInt("num cubes z", &state->n_cubes_z, 1, 100);
         ImGui::End();
     }
 
@@ -231,57 +240,19 @@ void update(thread_context *thread, game_memory *memory, game_input input, f32 d
         mat::print_m4(state->vp.view);
     }
 
-    if (state->cam_mode == camera_mode::fps) {
-        if (input::is_key_down(input.keyboard.w)) {
-            camera_move(state->camera, camera_mov_dir::backward, dt);
-        }
-        if (input::is_key_down(input.keyboard.s)) {
-            camera_move(state->camera, camera_mov_dir::forward, dt);
-        }
-        if (input::is_key_down(input.keyboard.a)) {
-            camera_move(state->camera, camera_mov_dir::left, dt);
-        }
-        if (input::is_key_down(input.keyboard.d)) {
-            camera_move(state->camera, camera_mov_dir::right, dt);
-        }
-        if (input::is_key_down(input.keyboard.z)) {
-            camera_move(state->camera, camera_mov_dir::down, dt);
-        }
-        if (input::is_key_down(input.keyboard.c)) {
-            camera_move(state->camera, camera_mov_dir::up, dt);
-        }
-
-        camera_mouse_look(state->camera, input.mouse, memory->win_dims);
-
-    } else {  // use look_at
-        if (input::is_key_down(input.keyboard.d0)) {
-            state->target_pos = {};
-        }
-        if (input::is_key_down(input.keyboard.w)) {
-            state->target_pos.z += dt;
-        }
-        if (input::is_key_down(input.keyboard.s)) {
-            state->target_pos.z -= dt;
-        }
-        if (input::is_key_down(input.keyboard.a)) {
-            state->target_pos.x -= dt;
-        }
-        if (input::is_key_down(input.keyboard.d)) {
-            state->target_pos.x += dt;
-        }
-        if (input::is_key_down(input.keyboard.z)) {
-            state->target_pos.y -= dt;
-        }
-        if (input::is_key_down(input.keyboard.c)) {
-            state->target_pos.y += dt;
-        }
-        camera_look_at(state->camera, state->target_pos, input.mouse, memory->win_dims);
+    if (input::is_key_up(input.keyboard.z)) {
+        f32 dist          = 3.0f;
+        state->target_pos = {};
+        camera_look_at(state->camera, state->target_pos, input.keyboard, input.mouse,
+                       memory->win_dims, &dist);
+    } else {
+        camera_look_at(state->camera, state->target_pos, input.keyboard, input.mouse,
+                       memory->win_dims);
     }
 
     state->vp.view = camera_get_view(state->camera);
     m4 vp          = state->vp.proj * state->vp.view;
 
-    uniform_set_mat4(state->main_shader, "model", model);
     uniform_set_mat4(state->main_shader, "vp", vp);
 
     // gfx.bind_vert_arr(state->vao);
@@ -300,10 +271,15 @@ void update(thread_context *thread, game_memory *memory, game_input input, f32 d
         ele_sw = !ele_sw;
     }
 
-    if (ele_sw)
-        ogl::draw_arrays(GL_TRIANGLES, 0, 36);
-    else
-        ogl::draw_elements(GL_TRIANGLES, state->inds * 3, GL_UNSIGNED_INT, 0);
+    for (s32 z = 0; z < state->n_cubes_z; ++z) {
+        for (s32 i = -(state->n_cubes / 2) - 1; i < state->n_cubes / 2; ++i) {
+            for (s32 j = -(state->n_cubes / 2) - 1; j < state->n_cubes / 2; ++j) {
+                model = mat::translate(model, { (f32)i, (f32)z, (f32)j });
+                uniform_set_mat4(state->main_shader, "model", model);
+                ogl::draw_elements(GL_TRIANGLES, state->inds * 3, GL_UNSIGNED_INT, 0);
+            }
+        }
+    }
 
     gfx.disable_vert_attrib_array(0);
     gfx.disable_vert_attrib_array(1);

@@ -38,8 +38,9 @@ enum class camera_mov_dir
 camera camera_init();
 camera camera_init(v3 pos, v3 target, v3 up);
 void camera_move(camera &cam, camera_mov_dir dir, f32 dt, bool distance = false);
-void camera_mouse_look(camera &cam,  input::mouse ms,  window_dims win_dims);
-void camera_look_at(camera &cam, v3 target_pos, input::mouse ms, window_dims win_dims);
+void camera_mouse_look(camera &cam, input::mouse ms, window_dims win_dims);
+void camera_look_at(camera &cam, v3 &target_pos, input::keyboard kb, input::mouse ms,
+                    window_dims win_dims, f32 *dist = nullptr);
 m4 camera_get_view(camera cam);
 
 }  // namespace tom

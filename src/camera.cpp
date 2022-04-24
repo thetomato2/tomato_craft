@@ -108,6 +108,51 @@ void camera_move(camera &cam, const camera_mov_dir dir, const f32 dt, bool dista
     }
 }
 
+internal void camera_pan_target(camera &cam, v3 &target_pos, const camera_mov_dir dir, const f32 dt,
+                                bool distance = false)
+{
+    f32 speed = cam.speed / 2.0f;;
+    if (distance) {
+        speed = 1.0f;
+    }
+
+    switch (dir) {
+        case camera_mov_dir::forward: {
+            cam.pos += cam.target * speed * dt;
+            target_pos += cam.target * speed * dt;
+        } break;
+        case camera_mov_dir::backward: {
+            cam.pos -= cam.target * speed * dt;
+            target_pos -= cam.target * speed * dt;
+        } break;
+        case camera_mov_dir::up: {
+            cam.pos.y += speed * dt;
+            target_pos.y += speed * dt;
+        } break;
+        case camera_mov_dir::down: {
+            cam.pos.y -= speed * dt;
+            target_pos.y -= speed * dt;
+        } break;
+        case camera_mov_dir::right: {
+            v3 res = vec::cross(cam.up, cam.target);
+            res    = vec::normalize(res);
+            res *= speed * dt;
+            cam.pos += res;
+            target_pos += res;
+
+        } break;
+        case camera_mov_dir::left: {
+            v3 res = vec::cross(cam.target, cam.up);
+            res    = vec::normalize(res);
+            res *= speed * dt;
+            cam.pos += res;
+            target_pos += res;
+        } break;
+        default: {
+        } break;
+    }
+}
+
 void camera_mouse_look(camera &cam, const input::mouse ms, const window_dims win_dims)
 {
     v2 ms_delta = ms.get_delta();
@@ -129,44 +174,55 @@ void camera_mouse_look(camera &cam, const input::mouse ms, const window_dims win
     // cam.target = qua::rotate(cam.target, cam.up, 1.0f);
 }
 
-void camera_look_at(camera &cam, v3 target_pos, input::mouse ms, window_dims win_dims)
+void camera_look_at(camera &cam, v3 &target_pos, input::keyboard kb, input::mouse ms,
+                    window_dims win_dims, f32 *dist)
 {
     v2 ms_delta = ms.get_delta();
     if (ms.pos.x < 0.0f || ms.pos.x > scast(f32, win_dims.width) || ms.pos.u < 0.0f ||
         ms.pos.y > scast(f32, win_dims.height))
         ms_delta = {};
 
-    f32 d1 = vec::distance(cam.pos, target_pos);
+    f32 d1;
+    if (dist) {
+        d1 = *dist;
+    } else {
+        d1 = vec::distance(cam.pos, target_pos);
+    }
 
     f32 mouse_sens  = 0.0005f / (1 / d1);
     f32 scroll_sens = 50.0f;
 
     // to keep a constant orbit
 
-    if (input::is_key_down(ms.l)) {
+    if (input::is_key_down(ms.m)) {
         if (ms_delta.x > 0.0f) {
-            f32 spd = abs(ms_delta.x) * mouse_sens;
-            camera_move(cam, camera_mov_dir::left, spd);
+            f32 spd            = abs(ms_delta.x) * mouse_sens;
+            camera_mov_dir dir = camera_mov_dir::left;
+            input::is_key_down(kb.left_shift) ? camera_pan_target(cam, target_pos, dir, spd)
+                                              : camera_move(cam, dir, spd);
         }
 
         if (ms_delta.x < 0.0f) {
             f32 spd = abs(ms_delta.x) * mouse_sens;
-            camera_move(cam, camera_mov_dir::right, spd);
+            camera_mov_dir dir = camera_mov_dir::right;
+            input::is_key_down(kb.left_shift) ? camera_pan_target(cam, target_pos, dir, spd)
+                                              : camera_move(cam, dir, spd);
         }
 
         if (ms_delta.y > 0.0f) {
             f32 spd = abs(ms_delta.y) * mouse_sens;
-            camera_move(cam, camera_mov_dir::up, spd);
+            camera_mov_dir dir = camera_mov_dir::up;
+            input::is_key_down(kb.left_shift) ? camera_pan_target(cam, target_pos, dir, spd)
+                                              : camera_move(cam, dir, spd);
         }
 
         if (ms_delta.y < 0.0f) {
             f32 spd = abs(ms_delta.y) * mouse_sens;
-            camera_move(cam, camera_mov_dir::down, spd);
+            camera_mov_dir dir = camera_mov_dir::down;
+            input::is_key_down(kb.left_shift) ? camera_pan_target(cam, target_pos, dir, spd)
+                                              : camera_move(cam, dir, spd);
         }
     }
-    printf("%d\n", ms.scroll);
-
-
     cam.target = vec::normalize(cam.pos - target_pos);
     f32 d2     = vec::distance(cam.pos, target_pos);
     // moved away
@@ -177,7 +233,6 @@ void camera_look_at(camera &cam, v3 target_pos, input::mouse ms, window_dims win
     if (d1 < d2) {
         camera_move(cam, camera_mov_dir::backward, d2 - d1, true);
     }
-
     if (ms.scroll > 0) {
         f32 spd = scroll_sens * mouse_sens;
         camera_move(cam, camera_mov_dir::backward, spd);

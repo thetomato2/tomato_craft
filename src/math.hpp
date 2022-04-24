@@ -1094,13 +1094,11 @@ inline m4 translate(v3 t)
 
 inline m4 translate(m4 a, v3 t)
 {
-    m4 res = a;
+    a.e[0][3] = t.x;
+    a.e[1][3] = t.y;
+    a.e[2][3] = t.z;
 
-    res.e[0][3] = t.x;
-    res.e[1][3] = t.y;
-    res.e[2][3] = t.z;
-
-    return res;
+    return a;
 }
 
 inline v3 get_col(m4 a, u32 c)

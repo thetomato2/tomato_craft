@@ -85,23 +85,18 @@ struct game_state
     camera camera;
     camera_mode cam_mode;
     v3 target_pos;
-
     f32 fov;
     f32 fov_old;
-
     f32 time_last;
-
     v4 clear_color;
     u32 vbo, vao, ebo, text_1;
-
     shader main_shader;
-
     f32 scaler;
-
     v3 model_loc;
     v3 model_rot;
-
     s32 inds;
+    s32 n_cubes;
+    s32 n_cubes_z;
 };
 
 struct offscreen_buffer
