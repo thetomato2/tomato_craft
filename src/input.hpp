@@ -38,13 +38,13 @@ struct mouse
         };
     };
 
-    f32 scroll;
-    v2 get_mouse_delta() const { return pos - pos_last; }
+    s32 scroll;
+    v2 get_delta() const { return pos - pos_last; }
 };
 
 struct keyboard
 {
-    global_var constexpr u32 key_cnt = 19;
+    global_var constexpr u32 key_cnt = 39;
     union
     {
         key keys[key_cnt];
@@ -55,20 +55,40 @@ struct keyboard
             key d3;
             key d4;
             key d5;
+            key d6;
+            key d7;
+            key d8;
+            key d9;
+            key d0;
             key enter;
             key space;
             key left_shift;
-            key r;
-            key t;
-            key q;
-            key e;
-            key w;
+            key tab;
             key a;
-            key s;
-            key d;
-            key p;
-            key z;
+            key b;
             key c;
+            key d;
+            key e;
+            key f;
+            key g;
+            key i;
+            key j;
+            key k;
+            key l;
+            key m;
+            key n;
+            key o;
+            key p;
+            key q;
+            key r;
+            key s;
+            key t;
+            key u;
+            key v;
+            key w;
+            key x;
+            key y;
+            key z;
         };
     };
 };

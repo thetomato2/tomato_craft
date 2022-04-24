@@ -1,67 +1,21 @@
 #include "shader.hpp"
-
-#include "opengl.hpp"
 #include "game.hpp"
 namespace tom
 {
 
-shader::shader(void *func_ptrs, const char *vert_code, const char *frag_code)
-{
-#if TOM_OPENGL
-    _func_ptrs = (ogl::wgl_func_ptrs *)(func_ptrs);
-#endif
-
-    _vert_code = vert_code;
-    _frag_code = frag_code;
-
-    init();
-}
-
-shader::shader(void *func_ptrs, const platform_io plat_io, const char *vert_path,
-               const char *frag_path)
-{
-#if TOM_OPENGL
-    _func_ptrs = (ogl::wgl_func_ptrs *)(func_ptrs);
-#endif
-
-    auto vert_file_res = plat_io.platform_read_entire_file(0, vert_path);
-    auto frag_file_res = plat_io.platform_read_entire_file(0, frag_path);
-
-    if (vert_file_res.content_size != 0) {
-        _vert_code = (const char *)vert_file_res.contents;
-    } else {
-        printf("ERROR-> Failed to read Vertex shader!\n");
-        INVALID_CODE_PATH;
-    }
-
-    if (frag_file_res.content_size != 0) {
-        _frag_code = (const char *)frag_file_res.contents;
-    } else {
-        printf("ERROR-> Failed to read Fragment shader!\n");
-        INVALID_CODE_PATH;
-    }
-
-    init();
-}
-
-shader::~shader()
-{
-    // TODO: delete the shader???
-}
-
-void shader::check_shader_compile_errors(u32 shader_id, shader::type type)
+internal void check_shader_compile_errors(ogl::wgl_func_ptrs *func_ptrs, u32 shader_id, type type)
 {
     b32 success;
-    _func_ptrs->get_shader_iv(shader_id, GL_COMPILE_STATUS, &success);
+    func_ptrs->get_shader_iv(shader_id, GL_COMPILE_STATUS, &success);
     if (!success) {
         char info_buf[1024];
-        _func_ptrs->get_shader_info_log(shader_id, ARRAY_COUNT(info_buf), NULL, info_buf);
+        func_ptrs->get_shader_info_log(shader_id, ARRAY_COUNT(info_buf), NULL, info_buf);
         printf("ERROR -> ");
         switch (type) {
-            case shader::type::vertex: {
+            case type::vertex: {
                 printf("Vertex ");
             } break;
-            case shader::type::fragment: {
+            case type::fragment: {
                 printf("Fragment ");
             } break;
             default: {
@@ -77,36 +31,37 @@ void shader::check_shader_compile_errors(u32 shader_id, shader::type type)
     TOM_ASSERT(success);
 }
 
-void shader::init()
+internal u32 create_shader(ogl::wgl_func_ptrs *func_ptrs, const char *vert_code,
+                           const char *frag_code)
 {
     u32 vert_id;
-    vert_id = _func_ptrs->create_shader(GL_VERTEX_SHADER);
+    vert_id = func_ptrs->create_shader(GL_VERTEX_SHADER);
     // NOTE: need a pointless pointer to a pointer so I can pass my pointer as a pointer
-    _func_ptrs->shader_source(vert_id, 1, &_vert_code, NULL);
-    _func_ptrs->compile_shader(vert_id);
-    check_shader_compile_errors(vert_id, shader::type::vertex);
+    func_ptrs->shader_source(vert_id, 1, &vert_code, NULL);
+    func_ptrs->compile_shader(vert_id);
+    check_shader_compile_errors(func_ptrs, vert_id, type::vertex);
 
     u32 frag_id;
-    frag_id = _func_ptrs->create_shader(GL_FRAGMENT_SHADER);
+    frag_id = func_ptrs->create_shader(GL_FRAGMENT_SHADER);
     // NOTE: need a pointless pointer to a pointer so I can pass my pointer as a pointer
-    _func_ptrs->shader_source(frag_id, 1, &_frag_code, NULL);
-    _func_ptrs->compile_shader(frag_id);
-    check_shader_compile_errors(frag_id, shader::type::fragment);
+    func_ptrs->shader_source(frag_id, 1, &frag_code, NULL);
+    func_ptrs->compile_shader(frag_id);
+    check_shader_compile_errors(func_ptrs, frag_id, type::fragment);
 
     // _id = _func_ptrs->create_program();
-    _id = _func_ptrs->create_program();
-    _func_ptrs->attach_shader(_id, vert_id);
-    _func_ptrs->attach_shader(_id, frag_id);
-    _func_ptrs->link_program(_id);
+    u32 shader_id = func_ptrs->create_program();
+    func_ptrs->attach_shader(shader_id, vert_id);
+    func_ptrs->attach_shader(shader_id, frag_id);
+    func_ptrs->link_program(shader_id);
 
     // check for compilation errors
     b32 success;
 
-    _func_ptrs->validate_program(_id);
-    _func_ptrs->get_program_iv(_id, GL_COMPILE_STATUS, &success);
+    func_ptrs->validate_program(shader_id);
+    func_ptrs->get_program_iv(shader_id, GL_COMPILE_STATUS, &success);
     if (!success) {
         char info_buf[1024];
-        _func_ptrs->get_program_info_log(_id, ARRAY_COUNT(info_buf), NULL, info_buf);
+        func_ptrs->get_program_info_log(shader_id, ARRAY_COUNT(info_buf), NULL, info_buf);
         printf(
             "ERROR -> Shader pogram failed to compile!\n%s\n -- "
             "------------------------------------------- -- ",
@@ -115,74 +70,90 @@ void shader::init()
     TOM_ASSERT(success);
 
     // cleanup
-    _func_ptrs->delete_shader(vert_id);
-    _func_ptrs->delete_shader(frag_id);
+    func_ptrs->delete_shader(vert_id);
+    func_ptrs->delete_shader(frag_id);
+
+    return shader_id;
 }
 
-void shader::use()
+shader shader_init(ogl::wgl_func_ptrs *func_ptrs, const char *vert_code, const char *frag_code)
 {
-#if TOM_OPENGL
-    _func_ptrs->use_program(_id);
-#else
-    INVALID_CODE_PATH;
+    shader result;
+    result.func_ptrs = func_ptrs;
+
+#ifdef TOM_INTERNAL
+    result.vert_code = vert_code;
+    result.frag_code = frag_code;
 #endif
+
+    result.id = create_shader(func_ptrs, vert_code, frag_code);
+
+    return result;
 }
 
-void shader::set_b32(const char *name, const b32 val)
+shader shader_init(ogl::wgl_func_ptrs *func_ptrs, const platform_io plat_io, const char *vert_path,
+            const char *frag_path)
 {
-#if TOM_OPENGL
-    s32 uni_loc = _func_ptrs->get_uniform_loc(_id, name);
-    TOM_ASSERT(uni_loc != -1); // failed to find uniform
-    _func_ptrs->set_uniform_s32(uni_loc, val);
-#else
-    INVALID_CODE_PATH;
+    shader result;
+    result.func_ptrs = func_ptrs;
+
+    auto vert_file_res = plat_io.platform_read_entire_file(0, vert_path);
+    auto frag_file_res = plat_io.platform_read_entire_file(0, frag_path);
+
+    if (vert_file_res.content_size == 0) {
+        printf("ERROR-> Failed to read Vertex shader!\n");
+        INVALID_CODE_PATH;
+    }
+
+    if (frag_file_res.content_size == 0) {
+        printf("ERROR-> Failed to read Fragment shader!\n");
+        INVALID_CODE_PATH;
+    }
+    auto vert_code = (const char *)vert_file_res.contents;
+    auto frag_code = (const char *)frag_file_res.contents;
+
+#ifdef TOM_INTERNAL
+    result.vert_code = vert_code;
+    result.frag_code = frag_code;
 #endif
+
+    result.id = create_shader(func_ptrs, vert_code, frag_code);
+
+    return result;
 }
 
-void shader::set_s32(const char *name, const s32 val)
+void uniform_set_s32(shader shader, const char *name, const s32 val)
 {
-#if TOM_OPENGL
-    s32 uni_loc = _func_ptrs->get_uniform_loc(_id, name);
-    TOM_ASSERT(uni_loc != -1); // failed to find uniform
-    _func_ptrs->set_uniform_s32(uni_loc, val);
-#else
-    INVALID_CODE_PATH;
-#endif
+    s32 uni_loc = shader.func_ptrs->get_uniform_loc(shader.id, name);
+    TOM_ASSERT(uni_loc != -1);  // failed to find uniform
+    shader.func_ptrs->set_uniform_s32(uni_loc, val);
 }
 
-void shader::set_f32(const char *name, const f32 val)
+void uniform_set_b32(shader shader, const char *name, const b32 val)
 {
-#if TOM_OPENGL
-    s32 uni_loc = _func_ptrs->get_uniform_loc(_id, name);
-    TOM_ASSERT(uni_loc != -1); // failed to find uniform
-    _func_ptrs->set_uniform_f32(uni_loc, val);
-#else
-    INVALID_CODE_PATH;
-#endif
+    uniform_set_s32(shader, name, val);
 }
 
-void shader::set_vec4(const char *name, const v4 val)
+void uniform_set_f32(shader shader, const char *name, const f32 val)
 {
-#if TOM_OPENGL
-    s32 uni_loc = _func_ptrs->get_uniform_loc(_id, name);
-    TOM_ASSERT(uni_loc != -1); // failed to find uniform
-    _func_ptrs->set_uniform_v4(uni_loc, 1, &val.e[0]);
-#else
-    INVALID_CODE_PATH;
-#endif
+    s32 uni_loc = shader.func_ptrs->get_uniform_loc(shader.id, name);
+    TOM_ASSERT(uni_loc != -1);  // failed to find uniform
+    shader.func_ptrs->set_uniform_f32(uni_loc, val);
 }
 
-void shader::set_mat4(const char *name, const m4 val)
+void uniform_set_vec4(shader shader, const char *name, const v4 val)
 {
-#if TOM_OPENGL
-    // NOTE: tranposed is called here to make the matrix column-major for OpenGL
+    s32 uni_loc = shader.func_ptrs->get_uniform_loc(shader.id, name);
+    TOM_ASSERT(uni_loc != -1);  // failed to find uniform
+    shader.func_ptrs->set_uniform_v4(uni_loc, 1, &val.e[0]);
+}
+
+void uniform_set_mat4(shader shader, const char *name, const m4 val)
+{
     m4 transposed = mat::transpose(val);
-    s32 uni_loc   = _func_ptrs->get_uniform_loc(_id, name);
-    TOM_ASSERT(uni_loc != -1); // failed to find uniform
-    _func_ptrs->set_uniform_m4(uni_loc, 1, GL_FALSE, &transposed.e[0][0]);
-#else
-    INVALID_CODE_PATH;
-#endif
+    s32 uni_loc   = shader.func_ptrs->get_uniform_loc(shader.id, name);
+    TOM_ASSERT(uni_loc != -1);  // failed to find uniform
+    shader.func_ptrs->set_uniform_m4(uni_loc, 1, GL_FALSE, &transposed.e[0][0]);
 }
 
 }  // namespace tom

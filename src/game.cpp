@@ -41,15 +41,9 @@ bool init(thread_context *thread, game_memory *memory)
 
     const char *vert_path = "./main.vert";
     const char *frag_path = "./main.frag";
+    state->main_shader = shader_init(&memory->ogl_func_ptrs, memory->plat_io, vert_path, frag_path);
 
-    state->camera = PUSH_STRUCT(&state->arena, camera);
-    new (state->camera) camera();  // NOTE: placment new
-
-    state->main_shader = PUSH_STRUCT(&state->arena, shader);
-    new (state->main_shader)  // NOTE: placment new
-        shader(&memory->ogl_func_ptrs, memory->plat_io, vert_path, frag_path);
-
-    TOM_ASSERT(state->main_shader);
+    state->camera = camera_init();
 
     ogl::enable(GL_DEPTH_TEST);
 
@@ -140,7 +134,7 @@ bool init(thread_context *thread, game_memory *memory)
     // load image, create texture and generate mipmaps
     s32 width, height, n_channels;
     stbi_set_flip_vertically_on_load(true);
-    byt *data = stbi_load("../../assets/images/win11.png", &width, &height, &n_channels, 0);
+    byt *data = stbi_load("../../../assets/images/win11.png", &width, &height, &n_channels, 0);
     if (data) {
         ogl::tex_img_2d(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE,
                         data);
@@ -156,13 +150,13 @@ bool init(thread_context *thread, game_memory *memory)
     state->vao    = vao;
     state->text_1 = texture1;
 
-    state->main_shader->use();
-    state->main_shader->set_s32("our_texture", 0);
+    gfx.use_program(state->main_shader.id);
+    uniform_set_s32(state->main_shader, "our_texture", 0);
 
     state->fov = 1.0f;
 
-    state->camera->pos.z = 10.0f;
-    state->camera->speed = 5.0f;
+    state->camera.pos.z = 10.0f;
+    state->camera.speed = 5.0f;
 
     state->scaler = 1.0f;
 
@@ -199,7 +193,7 @@ void update(thread_context *thread, game_memory *memory, game_input input, f32 d
     gfx.active_tex(GL_TEXTURE0);
     ogl::bind_tex(GL_TEXTURE_2D, state->text_1);
 
-    gfx.use_program(state->main_shader->get_id());
+    gfx.use_program(state->main_shader.id);
 
     {
         ImGui::Begin("Scene");
@@ -216,10 +210,10 @@ void update(thread_context *thread, game_memory *memory, game_input input, f32 d
 
     {
         ImGui::Begin("Camera");
-        ImGui::SliderFloat("x", &state->camera->pos.x, -100.0f, 100.0f);
-        ImGui::SliderFloat("y", &state->camera->pos.y, -100.0f, 100.0f);
-        ImGui::SliderFloat("z", &state->camera->pos.z, -100.0f, 100.0f);
-        ImGui::SliderFloat("speed", &state->camera->speed, -100.0f, 100.0f);
+        ImGui::SliderFloat("x", &state->camera.pos.x, -100.0f, 100.0f);
+        ImGui::SliderFloat("y", &state->camera.pos.y, -100.0f, 100.0f);
+        ImGui::SliderFloat("z", &state->camera.pos.z, -100.0f, 100.0f);
+        ImGui::SliderFloat("speed", &state->camera.speed, -100.0f, 100.0f);
         ImGui::End();
     }
 
@@ -233,35 +227,62 @@ void update(thread_context *thread, game_memory *memory, game_input input, f32 d
     model    = mat::rot_z(model, state->model_rot.z);
     model    = mat::scale(model, state->scaler);
 
-    state->vp.view = state->camera->get_view();
-
     if (input::is_key_up(input.keyboard.d4)) {
         mat::print_m4(state->vp.view);
     }
 
-    if (input::is_key_down(input.keyboard.w)) {
-        state->camera->move(camera::mov_dir::backward, dt);
-    }
-    if (input::is_key_down(input.keyboard.s)) {
-        state->camera->move(camera::mov_dir::forward, dt);
-    }
-    if (input::is_key_down(input.keyboard.a)) {
-        state->camera->move(camera::mov_dir::left, dt);
-    }
-    if (input::is_key_down(input.keyboard.d)) {
-        state->camera->move(camera::mov_dir::right, dt);
-    }
-    if (input::is_key_down(input.keyboard.z)) {
-        state->camera->move(camera::mov_dir::down, dt);
-    }
-    if (input::is_key_down(input.keyboard.c)) {
-        state->camera->move(camera::mov_dir::up, dt);
+    if (state->cam_mode == camera_mode::fps) {
+        if (input::is_key_down(input.keyboard.w)) {
+            camera_move(state->camera, camera_mov_dir::backward, dt);
+        }
+        if (input::is_key_down(input.keyboard.s)) {
+            camera_move(state->camera, camera_mov_dir::forward, dt);
+        }
+        if (input::is_key_down(input.keyboard.a)) {
+            camera_move(state->camera, camera_mov_dir::left, dt);
+        }
+        if (input::is_key_down(input.keyboard.d)) {
+            camera_move(state->camera, camera_mov_dir::right, dt);
+        }
+        if (input::is_key_down(input.keyboard.z)) {
+            camera_move(state->camera, camera_mov_dir::down, dt);
+        }
+        if (input::is_key_down(input.keyboard.c)) {
+            camera_move(state->camera, camera_mov_dir::up, dt);
+        }
+
+        camera_mouse_look(state->camera, input.mouse, memory->win_dims);
+
+    } else {  // use look_at
+        if (input::is_key_down(input.keyboard.d0)) {
+            state->target_pos = {};
+        }
+        if (input::is_key_down(input.keyboard.w)) {
+            state->target_pos.z += dt;
+        }
+        if (input::is_key_down(input.keyboard.s)) {
+            state->target_pos.z -= dt;
+        }
+        if (input::is_key_down(input.keyboard.a)) {
+            state->target_pos.x -= dt;
+        }
+        if (input::is_key_down(input.keyboard.d)) {
+            state->target_pos.x += dt;
+        }
+        if (input::is_key_down(input.keyboard.z)) {
+            state->target_pos.y -= dt;
+        }
+        if (input::is_key_down(input.keyboard.c)) {
+            state->target_pos.y += dt;
+        }
+        camera_look_at(state->camera, state->target_pos, input.mouse, memory->win_dims);
     }
 
-    m4 vp = state->vp.proj * state->vp.view;
+    state->vp.view = camera_get_view(state->camera);
+    m4 vp          = state->vp.proj * state->vp.view;
 
-    state->main_shader->set_mat4("model", model);
-    state->main_shader->set_mat4("vp", vp);
+    uniform_set_mat4(state->main_shader, "model", model);
+    uniform_set_mat4(state->main_shader, "vp", vp);
 
     // gfx.bind_vert_arr(state->vao);
     gfx.bind_buffer(GL_ARRAY_BUFFER, state->vbo);

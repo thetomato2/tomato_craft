@@ -55,7 +55,8 @@ using f32 = float;
 using f64 = double;
 
 using szt = size_t;
-using byt = u8;
+using byt = unsigned char;
+// using byt = u8; // TODO: is this different?
 
 using b32 = s32;
 
@@ -154,6 +155,12 @@ namespace tom
 struct thread_context
 {
     s32 place_holder;
+};
+
+struct window_dims
+{
+    s32 width;
+    s32 height;
 };
 
 struct memory_arena

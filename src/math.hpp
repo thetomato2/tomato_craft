@@ -6,6 +6,62 @@
 
 namespace tom
 {
+
+// ===============================================================================================
+// #FREE_FUNCS
+// ===============================================================================================
+namespace math
+{
+global_var constexpr f32 eps_f32 = 0.0001f;
+global_var constexpr f32 pi      = 3.14159265;
+
+f32 to_radian(f32 val)
+{
+    return (val * pi) / 180.0f;
+}
+
+f32 to_degree(f32 val)
+{
+    return (val * 180.0f) / pi;
+}
+
+template<typename T>
+T square(const T val)
+{
+    return val * val;
+}
+
+// Returns min or max if input is not in between
+template<typename T>
+T bounds(const T in, const T min, const T max)
+{
+    T res = in;
+
+    if (in < min)
+        res = min;
+    else if (in > max)
+        res = max;
+
+    return res;
+}
+
+template<typename T>
+T max(const T a, const T b)
+{
+    T res;
+    a > b ? res = a : res = b;
+    return res;
+}
+
+template<typename T>
+T min(const T a, const T b)
+{
+    T res;
+    a < b ? res = a : res = b;
+    return res;
+}
+}  // namespace math
+
 // ===============================================================================================
 // #VECTOR 2
 // ===============================================================================================
@@ -176,13 +232,25 @@ union v3
     };
     f32 e[3];
 };
+inline v3 v3_init(f32 x, f32 y, f32 z)
+{
+    v3 res;
+
+    res.x = x;
+    res.y = y;
+    res.z = z;
+
+    return res;
+}
 
 inline v3 v3_init(v2 a, f32 z = 0.f)
 {
     v3 res;
+
     res.x = a.x;
     res.y = a.y;
     res.z = z;
+
     return res;
 }
 
@@ -346,12 +414,24 @@ union v4
     struct
     {
         v3 rgb;
-        f32 _ignored0;
+        f32 _ignored1;
     };
     f32 e[4];
 };
 
-inline v4 v4_init(v2 a, f32 z = 0.f, f32 w = 0.f)
+inline v4 v4_init(f32 x, f32 y, f32 z, f32 w)
+{
+    v4 res;
+
+    res.x = x;
+    res.y = y;
+    res.z = z;
+    res.w = w;
+
+    return res;
+}
+
+inline v4 v4_init(v2 a, f32 z = 0.f, f32 w = 0.0f)
 {
     v4 res;
     res.x = a.x;
@@ -362,7 +442,7 @@ inline v4 v4_init(v2 a, f32 z = 0.f, f32 w = 0.f)
     return res;
 }
 
-inline v4 v4_init(v3 a, f32 w = 0.f)
+inline v4 v4_init(v3 a, f32 w = 0.0f)
 {
     v4 res;
     res.x = a.x;
@@ -488,6 +568,42 @@ inline v4 &operator*=(v4 &lhs, f32 rhs)
 {
     lhs = lhs * rhs;
 
+    return lhs;
+}
+
+inline v4 operator*(v4 lhs, v3 rhs)
+{
+    v4 res;
+
+    res.w = (lhs.x * rhs.x) - (lhs.y * rhs.y) - (lhs.z * rhs.z);
+    res.x = (lhs.w * rhs.x) + (lhs.y * rhs.z) - (lhs.z * rhs.y);
+    res.y = (lhs.w * rhs.y) + (lhs.z * rhs.x) - (lhs.x * rhs.z);
+    res.z = (lhs.w * rhs.z) + (lhs.x * rhs.y) - (lhs.y * rhs.x);
+
+    return res;
+}
+
+inline v4 operator*=(v4 &lhs, v3 rhs)
+{
+    lhs = lhs * rhs;
+    return lhs;
+}
+
+inline v4 operator*(v4 lhs, v4 rhs)
+{
+    v4 res;
+
+    res.w = (lhs.w * rhs.w) - (lhs.x * rhs.x) - (lhs.y * rhs.y) - (lhs.z * rhs.z);
+    res.x = (lhs.x * rhs.w) + (lhs.w * rhs.x) + (lhs.y * rhs.z) - (lhs.z * rhs.y);
+    res.y = (lhs.y * rhs.w) + (lhs.w * rhs.y) + (lhs.z * rhs.x) - (lhs.x * rhs.z);
+    res.z = (lhs.z * rhs.w) + (lhs.w * rhs.z) + (lhs.x * rhs.y) - (lhs.y * rhs.x);
+
+    return res;
+}
+
+inline v4 operator*=(v4 &lhs, v4 rhs)
+{
+    lhs = lhs * rhs;
     return lhs;
 }
 
@@ -653,8 +769,102 @@ inline v3 normalize(const v3 a)
 
     return res;
 }
+inline f32 distance(const v3 a, const v3 b)
+{
+    v3 dis = a - b;
+    dis.x  = abs(dis.x);
+    dis.y  = abs(dis.y);
+    dis.z  = abs(dis.z);
+
+    f32 res = length(dis);
+
+    return res;
+}
 
 }  // namespace vec
+
+// ===============================================================================================
+// #Quaternion
+// ===============================================================================================
+
+using quat = v4;  // Quaternion
+namespace qua
+{
+
+inline quat to_quat(v3 v, f32 a)
+{
+    f32 half_angle_rad = math::to_radian(a / 2.0f);
+    f32 sin_half_angle = sinf(half_angle_rad);
+    f32 cos_half_angle = cosf(half_angle_rad);
+
+    quat res;
+
+    res.x = v.x * sin_half_angle;
+    res.y = v.y * sin_half_angle;
+    res.z = v.z * sin_half_angle;
+    res.w = cos_half_angle;
+
+    return res;
+}
+
+inline f32 norm(quat a)
+{
+    f32 i   = vec::inner(a.xyz, a.xyz);
+    f32 s   = math::square(a.w);
+    f32 res = math::sqrt_f32(i + s);
+
+    return res;
+}
+
+inline quat unit_norm(quat a)
+{
+    f32 half_angle_rad = math::to_radian(a.w / 2.0f);
+    f32 sin_half_angle = sinf(half_angle_rad);
+    f32 cos_half_angle = cosf(half_angle_rad);
+
+    a.w   = cos_half_angle;
+    a.xyz = vec::normalize(a.xyz);
+    a.xyz = a.xyz * sin_half_angle;
+
+    return a;
+}
+inline quat conjuate(quat q)
+{
+    quat res;
+    res.x = -q.x;
+    res.y = -q.y;
+    res.z = -q.z;
+    res.w = q.w;
+
+    return res;
+}
+
+inline quat inverse(quat a)
+{
+    f32 abs   = 1 / (math::square(norm(a)));
+    quat conj = conjuate(a);
+    f32 s     = conj.w * abs;
+    v3 i      = conj.xyz * abs;
+
+    quat res;
+    res.xyz = i;
+    res.w   = s;
+
+    return res;
+}
+
+inline v3 rotate(v3 v, v3 u, f32 a)
+{
+    quat p   = { v.x, v.y, v.z, 0.0f };
+    u        = vec::normalize(u);
+    quat q   = unit_norm({ u.x, u.y, u.z, a });
+    quat q_i = inverse(q);
+
+    quat res = q * p * q_i;
+
+    return res.xyz;
+}
+}  // namespace qua
 
 // ===============================================================================================
 // #Matrix 4x4
@@ -764,6 +974,30 @@ inline m4 rot_z(f32 a)
 inline m4 rot_z(m4 a, f32 b)
 {
     return a * rot_z(b);
+}
+// u = arbitrary axis, a = angle
+inline m4 rotate(const v3 u, f32 a)
+{
+    a       = math::to_radian(a);
+    f32 c   = cos(a);
+    f32 l_c = 1 - c;
+    f32 s   = sin(a);
+
+    m4 res = { { { u.x * u.x + (1 - u.x * u.x) * c, u.x * u.y * l_c + u.z * s,
+                   u.x * u.z * l_c - u.y * s, 0 },
+                 { u.x * u.y * l_c - u.z * s, u.y * u.y + (1 - u.y * u.y) * c,
+                   u.y * u.z * l_c + u.x * s, 0 },
+                 { u.x * u.z * l_c + u.y * s, u.y * u.z * l_c - u.x * s,
+                   u.z * u.z + (1 - u.z * u.z) * c, 0 },
+                 { 0, 0, 0, 1 } } };
+    return res;
+}
+
+inline m4 rotate(m4 m, const v3 u, f32 a)
+{
+    m4 res = m * rotate(u, a);
+
+    return res;
 }
 
 inline m4 scale(const m4 a, const f32 b)
@@ -883,18 +1117,7 @@ inline v3 get_row(m4 a, u32 r)
     return res;
 }
 
-inline m4 cam_transform(v3 target, v3 up, v3 pos)
-{
-    v3 n = vec::normalize(target);
-    v3 u = vec::normalize(vec::cross(up, n));
-    v3 v = vec::cross(n, u);
-
-    m4 res = row_3x3(u, v, n) * mat::translate(-pos);
-
-    return res;
-}
-
-inline m4 cam_to_view(v3 pos, v3 u, v3 v, v3 n)
+inline m4 uvn_to_m4(v3 pos, v3 u, v3 v, v3 n)
 {
     m4 res = { { { u.x, u.y, u.z, -pos.x },
                  { v.x, v.y, v.z, -pos.y },
@@ -1138,50 +1361,6 @@ inline bool intersect(rect3 a, rect3 b)
 }
 
 }  // namespace rec
-
-// ===============================================================================================
-// #FREE_FUNCS
-// ===============================================================================================
-namespace math
-{
-global_var constexpr f32 eps_f32 = 0.0001f;
-
-template<typename T>
-T square(const T val)
-{
-    return val * val;
-}
-
-// Returns min or max if input is not in between
-template<typename T>
-T bounds(const T in, const T min, const T max)
-{
-    T res = in;
-
-    if (in < min)
-        res = min;
-    else if (in > max)
-        res = max;
-
-    return res;
-}
-
-template<typename T>
-T max(const T a, const T b)
-{
-    T res;
-    a > b ? res = a : res = b;
-    return res;
-}
-
-template<typename T>
-T min(const T a, const T b)
-{
-    T res;
-    a < b ? res = a : res = b;
-    return res;
-}
-}  // namespace math
 
 }  // namespace tom
 #endif  // TOMATO_MATH_HPP_

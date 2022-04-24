@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.20)
+cmake_minimum_required(VERSION 3.21)
 
 project ("Tomato_Craft"
         VERSION 0.1
@@ -8,16 +8,29 @@ project ("Tomato_Craft"
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
-set(CMAKE_UNITY_BUILD OFF)
+set(CMAKE_UNITY_BUILD ON)
+
+
+# Note: by default ENABLE_DEVELOPER_MODE is True
+# This means that all analysis (sanitizers, static analysis)
+# is enabled and all warnings are treated as errors
+# if you want to switch this behavior, change TRUE to FALSE
+# set(ENABLE_DEVELOPER_MODE
+#     TRUE
+#     CACHE BOOL "Enable 'developer mode'")
+
+# # Change this to false if you want to disable warnings_as_errors in developer mode
+# set(OPT_WARNINGS_AS_ERRORS_DEVELOPER_DEFAULT TRUE)
+
 
 set(SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/src)
 set(SHADER_DIR ${CMAKE_CURRENT_LIST_DIR}/shaders)
 set(EXTERN_DIR ${CMAKE_CURRENT_LIST_DIR}/external)
-set(BUILD_DIR ${CMAKE_CURRENT_LIST_DIR}/build)
+# set(BUILD_DIR ${CMAKE_CURRENT_LIST_DIR}/build)
 
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${BUILD_DIR})
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${BUILD_DIR})
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${BUILD_DIR})
+# set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${BUILD_DIR})
+# set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${BUILD_DIR})
+# set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${BUILD_DIR})
 
 list(APPEND COMPILE_FLAGS
     -fp:fast
@@ -127,8 +140,12 @@ target_compile_options(tomato_craft  PRIVATE
     # -MTd
     )
 
-    # set_target_properties(tomato_craft  PROPERTIES
-    #     VS_DEBUGGER_WORKING_DIRECTORY "$(TargetDir)")
+
+# if(MSVC)
+#     get_all_targets(all_targets)
+#     set_target_properties(${all_targets} PROPERTIES VS_DEBUGGER_ENVIRONMENT "PATH=$(VC_ExecutablePath_x64);%PATH%")
+# endif(
+
 
 target_compile_definitions(tomato_craft  PRIVATE ${COMPILE_DEFS})
 

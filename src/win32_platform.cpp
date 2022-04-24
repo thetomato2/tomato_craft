@@ -18,6 +18,8 @@ global_var bool g_pause;
 global_var bool g_resize;
 global_var bool g_debug_show_cursor;
 
+global_var s32 ms_scroll;
+
 WINDOWPLACEMENT g_win_pos = { sizeof(g_win_pos) };
 
 global_var offscreen_buffer g_back_buffer;
@@ -312,8 +314,13 @@ internal void do_controller_input(game::game_input &old_input, game::game_input 
     POINT mouse_point;
     GetCursorPos(&mouse_point);
     ScreenToClient(hwnd, &mouse_point);
-    new_input.mouse.pos.x = mouse_point.x;
-    new_input.mouse.pos.y = mouse_point.y;
+    new_input.mouse.pos_last.x = new_input.mouse.pos.x;
+    new_input.mouse.pos_last.y = new_input.mouse.pos.y;
+    new_input.mouse.pos.x      = mouse_point.x;
+    new_input.mouse.pos.y      = mouse_point.y;
+
+
+    new_input.mouse.scroll = ms_scroll;
 
     // mouse buttons
     process_keyboard_message(new_input.mouse.buttons[0], ::GetKeyState(VK_LBUTTON) & (1 << 15));
@@ -328,24 +335,45 @@ internal void do_controller_input(game::game_input &old_input, game::game_input 
 
     // keyboard
     process_keyboard_message(new_input.keyboard.enter, ::GetKeyState(keys::enter) & (1 << 15));
-    process_keyboard_message(new_input.keyboard.q, ::GetKeyState(keys::q) & (1 << 15));
-    process_keyboard_message(new_input.keyboard.e, ::GetKeyState(keys::e) & (1 << 15));
-    process_keyboard_message(new_input.keyboard.w, ::GetKeyState(keys::w) & (1 << 15));
-    process_keyboard_message(new_input.keyboard.a, ::GetKeyState(keys::a) & (1 << 15));
-    process_keyboard_message(new_input.keyboard.s, ::GetKeyState(keys::s) & (1 << 15));
-    process_keyboard_message(new_input.keyboard.d, ::GetKeyState(keys::d) & (1 << 15));
-    process_keyboard_message(new_input.keyboard.p, ::GetKeyState(keys::p) & (1 << 15));
-    process_keyboard_message(new_input.keyboard.t, ::GetKeyState(keys::t) & (1 << 15));
-    process_keyboard_message(new_input.keyboard.c, ::GetKeyState(keys::c) & (1 << 15));
-    process_keyboard_message(new_input.keyboard.z, ::GetKeyState(keys::z) & (1 << 15));
     process_keyboard_message(new_input.keyboard.d1, ::GetKeyState(keys::d1) & (1 << 15));
     process_keyboard_message(new_input.keyboard.d2, ::GetKeyState(keys::d2) & (1 << 15));
     process_keyboard_message(new_input.keyboard.d3, ::GetKeyState(keys::d3) & (1 << 15));
     process_keyboard_message(new_input.keyboard.d4, ::GetKeyState(keys::d4) & (1 << 15));
     process_keyboard_message(new_input.keyboard.d5, ::GetKeyState(keys::d5) & (1 << 15));
+    process_keyboard_message(new_input.keyboard.d6, ::GetKeyState(keys::d6) & (1 << 15));
+    process_keyboard_message(new_input.keyboard.d7, ::GetKeyState(keys::d7) & (1 << 15));
+    process_keyboard_message(new_input.keyboard.d8, ::GetKeyState(keys::d8) & (1 << 15));
+    process_keyboard_message(new_input.keyboard.d9, ::GetKeyState(keys::d9) & (1 << 15));
+    process_keyboard_message(new_input.keyboard.d0, ::GetKeyState(keys::d0) & (1 << 15));
     process_keyboard_message(new_input.keyboard.space, ::GetKeyState(keys::space) & (1 << 15));
     process_keyboard_message(new_input.keyboard.left_shift,
                              ::GetKeyState(keys::left_shift) & (1 << 15));
+    process_keyboard_message(new_input.keyboard.tab, ::GetKeyState(keys::tab) & (1 << 15));
+    process_keyboard_message(new_input.keyboard.a, ::GetKeyState(keys::a) & (1 << 15));
+    process_keyboard_message(new_input.keyboard.b, ::GetKeyState(keys::b) & (1 << 15));
+    process_keyboard_message(new_input.keyboard.c, ::GetKeyState(keys::c) & (1 << 15));
+    process_keyboard_message(new_input.keyboard.d, ::GetKeyState(keys::d) & (1 << 15));
+    process_keyboard_message(new_input.keyboard.e, ::GetKeyState(keys::e) & (1 << 15));
+    process_keyboard_message(new_input.keyboard.f, ::GetKeyState(keys::f) & (1 << 15));
+    process_keyboard_message(new_input.keyboard.g, ::GetKeyState(keys::g) & (1 << 15));
+    process_keyboard_message(new_input.keyboard.i, ::GetKeyState(keys::i) & (1 << 15));
+    process_keyboard_message(new_input.keyboard.j, ::GetKeyState(keys::j) & (1 << 15));
+    process_keyboard_message(new_input.keyboard.k, ::GetKeyState(keys::k) & (1 << 15));
+    process_keyboard_message(new_input.keyboard.l, ::GetKeyState(keys::l) & (1 << 15));
+    process_keyboard_message(new_input.keyboard.m, ::GetKeyState(keys::m) & (1 << 15));
+    process_keyboard_message(new_input.keyboard.n, ::GetKeyState(keys::n) & (1 << 15));
+    process_keyboard_message(new_input.keyboard.o, ::GetKeyState(keys::o) & (1 << 15));
+    process_keyboard_message(new_input.keyboard.p, ::GetKeyState(keys::p) & (1 << 15));
+    process_keyboard_message(new_input.keyboard.q, ::GetKeyState(keys::q) & (1 << 15));
+    process_keyboard_message(new_input.keyboard.r, ::GetKeyState(keys::r) & (1 << 15));
+    process_keyboard_message(new_input.keyboard.s, ::GetKeyState(keys::s) & (1 << 15));
+    process_keyboard_message(new_input.keyboard.t, ::GetKeyState(keys::t) & (1 << 15));
+    process_keyboard_message(new_input.keyboard.u, ::GetKeyState(keys::u) & (1 << 15));
+    process_keyboard_message(new_input.keyboard.v, ::GetKeyState(keys::v) & (1 << 15));
+    process_keyboard_message(new_input.keyboard.w, ::GetKeyState(keys::w) & (1 << 15));
+    process_keyboard_message(new_input.keyboard.x, ::GetKeyState(keys::x) & (1 << 15));
+    process_keyboard_message(new_input.keyboard.y, ::GetKeyState(keys::y) & (1 << 15));
+    process_keyboard_message(new_input.keyboard.z, ::GetKeyState(keys::z) & (1 << 15));
 
     // controller
     // poll the input device
@@ -595,18 +623,9 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
             PostQuitMessage(0);
         } break;
         case WM_ACTIVATEAPP: break;
-#if 0
-        case WM_PAINT: {
-            PAINTSTRUCT paint;
-            HDC device_context = BeginPaint(hwnd, &paint);
-            s32 x              = paint.rcPaint.left;
-            s32 y              = paint.rcPaint.right;
-            s32 height         = paint.rcPaint.bottom - paint.rcPaint.top;
-            s32 width          = paint.rcPaint.right - paint.rcPaint.left;
-            display_buffer_in_window(device_context, g_back_buffer, x, y, width, height);
-            EndPaint(hwnd, &paint);
+        case WM_MOUSEWHEEL: {
+            ms_scroll = GET_WHEEL_DELTA_WPARAM(wparam);
         } break;
-#endif
         default:
             //            OutPutDebugStringA("default\n");
             result = DefWindowProc(hwnd, msg, wparam, lparam);
@@ -796,6 +815,8 @@ s32 win32_main(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, s
     memory.win_dims.width  = win_width;
     memory.win_dims.height = win_height;
 
+    SetCursorPos(win_width / 2, win_height / 2);
+
     state.total_size = memory.permanent_storage_size + memory.transient_storage_size;
     // TODO: use large pages
     state.game_memory_block =
@@ -845,8 +866,9 @@ s32 win32_main(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, s
             g_resize               = false;
         }
 
-        do_controller_input(*old_input, *new_input, hwnd);
+        ms_scroll = 0;
         process_pending_messages(state, *new_input);
+        do_controller_input(*old_input, *new_input, hwnd);
         // NOTE: this isn't calculated and needs to be for a varaible framerate
         delta_time = g_target_frames_per_second;
 

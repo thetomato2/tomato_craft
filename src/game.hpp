@@ -6,17 +6,11 @@
 #include "common.hpp"
 #include "camera.hpp"
 #include "input.hpp"
+#include "shader.hpp"
 #include "opengl.hpp"
 
 namespace tom
 {
-struct shader;
-
-struct window_dims
-{
-    s32 width;
-    s32 height;
-};
 
 struct read_file_result
 {
@@ -88,7 +82,9 @@ struct game_state
         m4 proj;
     } vp;
 
-    camera *camera;
+    camera camera;
+    camera_mode cam_mode;
+    v3 target_pos;
 
     f32 fov;
     f32 fov_old;
@@ -98,7 +94,7 @@ struct game_state
     v4 clear_color;
     u32 vbo, vao, ebo, text_1;
 
-    shader *main_shader;
+    shader main_shader;
 
     f32 scaler;
 
