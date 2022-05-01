@@ -8,6 +8,7 @@ namespace game
 
 internal void on_resize(game_state *state, window_dims win_dims)
 {
+    f32 aspect = scast(f32, win_dims.width) / scast(f32, win_dims.height);
     state->vp.proj =
         mat::proj_persp(scast(f32, win_dims.width) / scast(f32, win_dims.height), state->fov);
 }
@@ -41,9 +42,9 @@ bool init(thread_context *thread, game_memory *memory)
 
     const char *vert_path = "./main.vert";
     const char *frag_path = "./main.frag";
-    state->main_shader = shader_init(&memory->ogl_func_ptrs, memory->plat_io, vert_path, frag_path);
+    new (&state->main_shader) shader(&memory->ogl_func_ptrs, memory->plat_io, vert_path, frag_path);
 
-    state->camera = camera_init();
+    new (&state->camera) camera();
 
     ogl::enable(GL_DEPTH_TEST);
 
@@ -118,52 +119,41 @@ bool init(thread_context *thread, game_memory *memory)
     gfx.vertex_attrib_ptr(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)(3 * sizeof(float)));
     gfx.enable_vert_attrib_array(1);
 
-    // load and create a texture
-    // -------------------------
-    u32 texture1;
-    // texture 1
-    // ---------
-    ogl::gen_tex(1, &texture1);
-    ogl::bind_tex(GL_TEXTURE_2D, texture1);
-    // set the texture wrapping parameters
-    ogl::tex_params_s32(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    ogl::tex_params_s32(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    // set texture filtering parameters
-    ogl::tex_params_s32(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    ogl::tex_params_s32(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    // load image, create texture and generate mipmaps
-    s32 width, height, n_channels;
-    stbi_set_flip_vertically_on_load(true);
-    byt *data = stbi_load("../../../assets/images/dirt.png", &width, &height, &n_channels, 0);
-    if (data) {
-        ogl::tex_img_2d(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE,
-                        data);
-        gfx.gen_mipmap(GL_TEXTURE_2D);
-    } else {
-        printf("Failed to load texture\n");
-       INVALID_CODE_PATH;
-    }
-    stbi_image_free(data);
+    new (&state->tex1) texture(GL_TEXTURE_2D, "../../../assets/images/dirt.png", gfx);
+    new (&state->tex2) texture(GL_TEXTURE_2D, "../../../assets/images/pika.png", gfx);
 
-    state->vbo    = vbo;
-    state->ebo    = ebo;
-    state->vao    = vao;
-    state->text_1 = texture1;
+    state->vbo = vbo;
+    state->ebo = ebo;
+    state->vao = vao;
 
-    gfx.use_program(state->main_shader.id);
-    uniform_set_s32(state->main_shader, "our_texture", 0);
+    state->main_shader.use();
+    state->main_shader.set_s32("our_texture", 0);
 
     state->fov = 1.0f;
 
     state->camera.pos.z = 10.0f;
     state->camera.speed = 5.0f;
 
-    state->scaler    = 1.0f;
-    state->inds      = 12;
+    state->scaler = 1.0f;
+    state->inds   = 12;
+
+    state->max_cubes = 100;
     state->n_cubes   = 1;
     state->n_cubes_z = 1;
 
     state->clear_color = { 0.2f, 0.3f, 0.3f, 1.0f };
+
+    s32 total_cubes  = math::cube(state->max_cubes);
+    state->matricies = (m4 *)push_size(&state->arena, sizeof(m4) * total_cubes);
+
+    for (s32 y = 0; y < state->max_cubes; ++y) {
+        for (s32 z = 0; z < state->max_cubes; ++z) {
+            for (s32 x = 0; x < state->max_cubes; ++x) {
+                u32 cur_mat_ind = x + z * state->max_cubes + y * math::square(state->max_cubes);
+                state->matricies[cur_mat_ind] = mat::translate({ (f32)x, (f32)y, (f32)z });
+            }
+        }
+    }
 
     s32 n_tex_units = 0;
     ogl::get_int4(GL_MAX_TEXTURE_UNITS, &n_tex_units);
@@ -175,6 +165,7 @@ bool init(thread_context *thread, game_memory *memory)
 void update(thread_context *thread, game_memory *memory, game_input input, f32 dt)
 {
     game_state *state = (game_state *)memory->permanent_storage;
+
     if (memory->win_resize || state->fov_old < state->fov - math::eps_f32 ||
         state->fov_old > state->fov + math::eps_f32) {
         on_resize(state, memory->win_dims);
@@ -197,15 +188,19 @@ void update(thread_context *thread, game_memory *memory, game_input input, f32 d
                      state->clear_color.a);
     ogl::clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    gfx.active_tex(GL_TEXTURE0);
-    ogl::bind_tex(GL_TEXTURE_2D, state->text_1);
+    if (input::is_key_up(input.keyboard.d2)) state->line_mode = !state->line_mode;
 
-    gfx.use_program(state->main_shader.id);
+    if (input::is_key_down(input.keyboard.d1))
+        state->tex2.bind(GL_TEXTURE0);
+    else
+        state->tex1.bind(GL_TEXTURE0);
+
+    state->main_shader.use();
 
     {
         ImGui::Begin("Scene");
         ImGui::ColorEdit4("Clear", (f32 *)&state->clear_color.e[0]);
-        ImGui::SliderFloat("fov", &state->fov, 0.01f, 2.0f);
+        ImGui::SliderFloat("fov", &state->fov, 0.01f, 3.0f);
         ImGui::SliderFloat3("model loc", &state->model_loc.e[0], -10.0f, 10.0f);
         ImGui::SliderAngle("x rot", &state->model_rot.x);
         ImGui::SliderAngle("y rot", &state->model_rot.y);
@@ -241,19 +236,18 @@ void update(thread_context *thread, game_memory *memory, game_input input, f32 d
     }
 
     if (input::is_key_up(input.keyboard.z)) {
-        f32 dist          = 3.0f;
-        state->target_pos = {};
-        camera_look_at(state->camera, state->target_pos, input.keyboard, input.mouse,
-                       memory->win_dims, &dist);
+        f32 dist      = (scast(f32, state->n_cubes) * 0.9f) + 1.0f;
+        v3 target_pos = { scast(f32, state->n_cubes / 2), scast(f32, state->n_cubes_z / 2),
+                          scast(f32, state->n_cubes / 2) };
+        state->camera.orbit(input.keyboard, input.mouse, memory->win_dims, &dist, &target_pos);
     } else {
-        camera_look_at(state->camera, state->target_pos, input.keyboard, input.mouse,
-                       memory->win_dims);
+        state->camera.orbit(input.keyboard, input.mouse, memory->win_dims);
     }
 
-    state->vp.view = camera_get_view(state->camera);
+    state->vp.view = state->camera.get_view();
     m4 vp          = state->vp.proj * state->vp.view;
 
-    uniform_set_mat4(state->main_shader, "vp", vp);
+    state->main_shader.set_m4("vp", vp);
 
     // gfx.bind_vert_arr(state->vao);
     gfx.bind_buffer(GL_ARRAY_BUFFER, state->vbo);
@@ -265,17 +259,12 @@ void update(thread_context *thread, game_memory *memory, game_input input, f32 d
     gfx.enable_vert_attrib_array(1);
     gfx.vertex_attrib_ptr(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)(3 * sizeof(float)));
 
-    local_persist bool ele_sw = true;
-
-    if (input::is_key_up(input.keyboard.d1)) {
-        ele_sw = !ele_sw;
-    }
-
-    for (s32 z = 0; z < state->n_cubes_z; ++z) {
-        for (s32 i = -(state->n_cubes / 2) - 1; i < state->n_cubes / 2; ++i) {
-            for (s32 j = -(state->n_cubes / 2) - 1; j < state->n_cubes / 2; ++j) {
-                model = mat::translate(model, { (f32)i, (f32)z, (f32)j });
-                uniform_set_mat4(state->main_shader, "model", model);
+    for (s32 y = 0; y < state->n_cubes_z; ++y) {
+        for (s32 z = 0; z < state->n_cubes; ++z) {
+            for (s32 x = 0; x < state->n_cubes; ++x) {
+                u32 cur_mat_ind = x + z * state->max_cubes + y * math::square(state->max_cubes);
+                m4 temp         = state->matricies[cur_mat_ind];
+                state->main_shader.set_m4("model", state->matricies[cur_mat_ind]);
                 ogl::draw_elements(GL_TRIANGLES, state->inds * 3, GL_UNSIGNED_INT, 0);
             }
         }
@@ -291,6 +280,10 @@ void update(thread_context *thread, game_memory *memory, game_input input, f32 d
 // NOTE: clean up here
 bool exit(thread_context *thread, game_memory *memory)
 {
+    game_state *state = (game_state *)memory->permanent_storage;
+    memory->ogl_func_ptrs.delete_buffers(1, &state->ebo);
+    memory->ogl_func_ptrs.delete_vert_arr(1, &state->vao);
+
     return true;
 }
 

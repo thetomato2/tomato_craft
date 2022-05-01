@@ -126,6 +126,8 @@ add_executable(tomato_craft WIN32
     ${SOURCE_DIR}/opengl.cpp
     ${SOURCE_DIR}/shader.hpp
     ${SOURCE_DIR}/shader.cpp
+    ${SOURCE_DIR}/texture.hpp
+    ${SOURCE_DIR}/texture.cpp
     ${SOURCE_DIR}/win32_platform.hpp
     ${SOURCE_DIR}/win32_platform.cpp
     )

@@ -12,17 +12,32 @@ namespace tom
 // ===============================================================================================
 namespace math
 {
-global_var constexpr f32 eps_f32 = 0.0001f;
+global_var constexpr f32 eps_f32 = 0.000001f;
 global_var constexpr f32 pi      = 3.14159265;
 
-f32 to_radian(f32 val)
+inline f32 to_radian(f32 val)
 {
     return (val * pi) / 180.0f;
 }
 
-f32 to_degree(f32 val)
+inline f32 to_degree(f32 val)
 {
     return (val * 180.0f) / pi;
+}
+
+// Calculate linear interpolation between two floats
+inline f32 lerp(f32 start, f32 end, f32 amount)
+{
+    f32 res = start + amount * (end - start);
+
+    return res;
+}
+
+inline bool f32_equals(f32 a, f32 b)
+{
+    bool res = (fabsf(a - b)) <= (eps_f32 * fmaxf(1.0f, fmaxf(fabsf(a), fabsf(b))));
+
+    return res;
 }
 
 template<typename T>
@@ -31,16 +46,19 @@ T square(const T val)
     return val * val;
 }
 
+template<typename T>
+T cube(const T val)
+{
+    return val * val * val;
+}
+
 // Returns min or max if input is not in between
 template<typename T>
-T bounds(const T in, const T min, const T max)
+T clamp(const T val, const T min, const T max)
 {
-    T res = in;
+    T res = (val < min) ? min : val;
 
-    if (in < min)
-        res = min;
-    else if (in > max)
-        res = max;
+    if (res > max) res = max;
 
     return res;
 }
@@ -676,6 +694,39 @@ inline f32 dot(const v4 a, const v4 b)
     return inner(a, b);
 }
 
+v2 inline lerp(const v2 a, const v2 b, f32 val)
+{
+    v2 res;
+
+    res.x = math::lerp(a.x, b.x, val);
+    res.y = math::lerp(a.y, b.y, val);
+
+    return res;
+}
+
+v3 inline lerp(const v3 a, const v3 b, f32 val)
+{
+    v3 res;
+
+    res.x = math::lerp(a.x, b.x, val);
+    res.y = math::lerp(a.y, b.y, val);
+    res.z = math::lerp(a.z, b.z, val);
+
+    return res;
+}
+
+v4 inline lerp(const v4 a, const v4 b, f32 val)
+{
+    v4 res;
+
+    res.x = math::lerp(a.x, b.x, val);
+    res.y = math::lerp(a.y, b.y, val);
+    res.z = math::lerp(a.z, b.z, val);
+    res.w = math::lerp(a.w, b.w, val);
+
+    return res;
+}
+
 inline v3 cross(const v3 a, const v3 b)
 {
     v3 res;
@@ -769,6 +820,18 @@ inline v3 normalize(const v3 a)
 
     return res;
 }
+
+inline f32 distance(const v2 a, const v2 b)
+{
+    v2 dis = a - b;
+    dis.x  = abs(dis.x);
+    dis.y  = abs(dis.y);
+
+    f32 res = length(dis);
+
+    return res;
+}
+
 inline f32 distance(const v3 a, const v3 b)
 {
     v3 dis = a - b;
@@ -777,6 +840,55 @@ inline f32 distance(const v3 a, const v3 b)
     dis.z  = abs(dis.z);
 
     f32 res = length(dis);
+
+    return res;
+}
+
+inline v2 reflect(v2 a, v2 b)
+{
+    v2 res;
+
+    f32 dot = vec::inner(a, b);
+
+    res.x = a.x - (2.0f * b.x) * dot;
+    res.y = a.y - (2.0f * b.y) * dot;
+
+    return res;
+}
+
+inline v3 reflect(v3 a, v3 b)
+{
+    v3 res;
+
+    f32 dot = vec::inner(a, b);
+
+    res.x = a.x - (2.0f * b.x) * dot;
+    res.y = a.y - (2.0f * b.y) * dot;
+    res.z = a.z - (2.0f * b.z) * dot;
+
+    return res;
+}
+
+// Compute barycenter coordinates (u, v, w) for point p with respect to triangle (a, b, c)
+// NOTE: Assumes P is on the plane of the triangle
+inline v3 bary_center(v3 p, v3 a, v3 b, v3 c)
+{
+    v3 res;
+
+    v3 v0   = { b.x - a.x, b.y - a.y, b.z - a.z };        // Vector3Subtract(b, a)
+    v3 v1   = { c.x - a.x, c.y - a.y, c.z - a.z };        // Vector3Subtract(c, a)
+    v3 v2   = { p.x - a.x, p.y - a.y, p.z - a.z };        // Vector3Subtract(p, a)
+    f32 d00 = (v0.x * v0.x + v0.y * v0.y + v0.z * v0.z);  // Vector3DotProduct(v0, v0)
+    f32 d01 = (v0.x * v1.x + v0.y * v1.y + v0.z * v1.z);  // Vector3DotProduct(v0, v1)
+    f32 d11 = (v1.x * v1.x + v1.y * v1.y + v1.z * v1.z);  // Vector3DotProduct(v1, v1)
+    f32 d20 = (v2.x * v0.x + v2.y * v0.y + v2.z * v0.z);  // Vector3DotProduct(v2, v0)
+    f32 d21 = (v2.x * v1.x + v2.y * v1.y + v2.z * v1.z);  // Vector3DotProduct(v2, v1)
+
+    f32 denom = d00 * d11 - d01 * d01;
+
+    res.y = (d11 * d20 - d01 * d21) / denom;
+    res.z = (d00 * d21 - d01 * d20) / denom;
+    res.x = 1.0f - (res.z + res.y);
 
     return res;
 }
@@ -853,6 +965,7 @@ inline quat inverse(quat a)
     return res;
 }
 
+// rotate v3 around arbitrary axis
 inline v3 rotate(v3 v, v3 u, f32 a)
 {
     quat p   = { v.x, v.y, v.z, 0.0f };
@@ -864,21 +977,58 @@ inline v3 rotate(v3 v, v3 u, f32 a)
 
     return res.xyz;
 }
+
+// transform a v3 by quat
+v3 rotate(v3 v, quat q)
+{
+    v3 res;
+
+    res.x = v.x * (q.x * q.x + q.w * q.w - q.y * q.y - q.z * q.z) +
+            v.y * (2 * q.x * q.y - 2 * q.w * q.z) + v.z * (2 * q.x * q.z + 2 * q.w * q.y);
+    res.y = v.x * (2 * q.w * q.z + 2 * q.x * q.y) +
+            v.y * (q.w * q.w - q.x * q.x + q.y * q.y - q.z * q.z) +
+            v.z * (-2 * q.w * q.x + 2 * q.y * q.z);
+    res.z = v.x * (-2 * q.w * q.y + 2 * q.x * q.z) + v.y * (2 * q.w * q.x + 2 * q.y * q.z) +
+            v.z * (q.w * q.w - q.x * q.x - q.y * q.y + q.z * q.z);
+
+    return res;
+}
+
 }  // namespace qua
 
 // ===============================================================================================
 // #Matrix 4x4
 // ===============================================================================================
-struct m4
+union m4
 {
     // NOTE: row major
-    f32 e[4][4];
+    f32 e[16];
+    f32 m[4][4];
 };
 
 inline m4 operator*(m4 a, m4 b)
 {
     m4 res = {};
 
+#if 1
+    res.e[0]  = a.e[0] * b.e[0] + a.e[1] * b.e[4] + a.e[2] * b.e[8] + a.e[3] * b.e[12];
+    res.e[1]  = a.e[0] * b.e[1] + a.e[1] * b.e[5] + a.e[2] * b.e[9] + a.e[3] * b.e[13];
+    res.e[2]  = a.e[0] * b.e[2] + a.e[1] * b.e[6] + a.e[2] * b.e[10] + a.e[3] * b.e[14];
+    res.e[3]  = a.e[0] * b.e[3] + a.e[1] * b.e[7] + a.e[2] * b.e[11] + a.e[3] * b.e[15];
+    res.e[4]  = a.e[4] * b.e[0] + a.e[5] * b.e[4] + a.e[6] * b.e[8] + a.e[7] * b.e[12];
+    res.e[5]  = a.e[4] * b.e[1] + a.e[5] * b.e[5] + a.e[6] * b.e[9] + a.e[7] * b.e[13];
+    res.e[6]  = a.e[4] * b.e[2] + a.e[5] * b.e[6] + a.e[6] * b.e[10] + a.e[7] * b.e[14];
+    res.e[7]  = a.e[4] * b.e[3] + a.e[5] * b.e[7] + a.e[6] * b.e[11] + a.e[7] * b.e[15];
+    res.e[8]  = a.e[8] * b.e[0] + a.e[9] * b.e[4] + a.e[10] * b.e[8] + a.e[11] * b.e[12];
+    res.e[9]  = a.e[8] * b.e[1] + a.e[9] * b.e[5] + a.e[10] * b.e[9] + a.e[11] * b.e[13];
+    res.e[10] = a.e[8] * b.e[2] + a.e[9] * b.e[6] + a.e[10] * b.e[10] + a.e[11] * b.e[14];
+    res.e[11] = a.e[8] * b.e[3] + a.e[9] * b.e[7] + a.e[10] * b.e[11] + a.e[11] * b.e[15];
+    res.e[12] = a.e[12] * b.e[0] + a.e[13] * b.e[4] + a.e[14] * b.e[8] + a.e[15] * b.e[12];
+    res.e[13] = a.e[12] * b.e[1] + a.e[13] * b.e[5] + a.e[14] * b.e[9] + a.e[15] * b.e[13];
+    res.e[14] = a.e[12] * b.e[2] + a.e[13] * b.e[6] + a.e[14] * b.e[10] + a.e[15] * b.e[14];
+    res.e[15] = a.e[12] * b.e[3] + a.e[13] * b.e[7] + a.e[14] * b.e[11] + a.e[15] * b.e[15];
+
+#else
     // NOTE: this should unroll but...
     // TODO: unroll this and use simd
     for (s32 r = 0; r < 4; ++r) {
@@ -888,6 +1038,7 @@ inline m4 operator*(m4 a, m4 b)
             }
         }
     }
+#endif
 
     return res;
 }
@@ -896,9 +1047,9 @@ inline v3 transform(m4 a, v3 p, f32 Pw = 1.0f)
 {
     v3 res = {};
 
-    res.x = p.x * a.e[0][0] + p.y * a.e[0][1] + p.z * a.e[0][2] + Pw * a.e[0][3];
-    res.y = p.x * a.e[1][0] + p.y * a.e[1][1] + p.z * a.e[1][2] + Pw * a.e[1][3];
-    res.z = p.x * a.e[2][0] + p.y * a.e[2][1] + p.z * a.e[2][2] + Pw * a.e[2][3];
+    res.x = p.x * a.m[0][0] + p.y * a.m[0][1] + p.z * a.m[0][2] + Pw * a.m[0][3];
+    res.y = p.x * a.m[1][0] + p.y * a.m[1][1] + p.z * a.m[1][2] + Pw * a.m[1][3];
+    res.z = p.x * a.m[2][0] + p.y * a.m[2][1] + p.z * a.m[2][2] + Pw * a.m[2][3];
 
     return res;
 }
@@ -914,10 +1065,9 @@ namespace mat
 {
 inline m4 identity(f32 a = 1.0f)
 {
-    m4 res = { { { a, 0.0f, 0.0f, 0.0f },
-                 { 0.0f, a, 0.0f, 0.0f },
-                 { 0.0f, 0.0f, a, 0.0f },
-                 { 0.0f, 0.0f, 0.0f, 1.0f } } };
+    m4 res = {
+        a, 0.0f, 0.0f, 0.0f, 0.0f, a, 0.0f, 0.0f, 0.0f, 0.0f, a, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f
+    };
 
     return res;
 }
@@ -927,10 +1077,9 @@ inline m4 rot_x(f32 a)
     f32 c = cos(a);
     f32 s = sin(a);
 
-    m4 res = { { { 1.0f, 0.0f, 0.0f, 0.0f },
-                 { 0.0f, c, -s, 0.0f },
-                 { 0.0f, s, c, 0.0f },
-                 { 0.0f, 0.0f, 0.0f, 1.0f } } };
+    m4 res = {
+        1.0f, 0.0f, 0.0f, 0.0f, 0.0f, c, -s, 0.0f, 0.0f, s, c, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f
+    };
 
     return res;
 }
@@ -945,10 +1094,9 @@ inline m4 rot_y(f32 a)
     f32 c = cos(a);
     f32 s = sin(a);
 
-    m4 res = { { { c, 0.0f, s, 0.0f },
-                 { 0.0f, 1.0f, 0.0f, 0.0f },
-                 { -s, 0.0f, c, 0.0f },
-                 { 0.0f, 0.0f, 0.0f, 1.0f } } };
+    m4 res = {
+        c, 0.0f, s, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, -s, 0.0f, c, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f
+    };
 
     return res;
 }
@@ -963,10 +1111,9 @@ inline m4 rot_z(f32 a)
     f32 c = cos(a);
     f32 s = sin(a);
 
-    m4 res = { { { c, -s, 0.0f, 0.0f },
-                 { s, c, 0.0f, 0.0f },
-                 { 0.0f, 0.0f, 1.0f, 0.0f },
-                 { 0.0f, 0.0f, 0.0f, 1.0f } } };
+    m4 res = {
+        c, -s, 0.0f, 0.0f, s, c, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f
+    };
 
     return res;
 }
@@ -983,13 +1130,22 @@ inline m4 rotate(const v3 u, f32 a)
     f32 l_c = 1 - c;
     f32 s   = sin(a);
 
-    m4 res = { { { u.x * u.x + (1 - u.x * u.x) * c, u.x * u.y * l_c + u.z * s,
-                   u.x * u.z * l_c - u.y * s, 0 },
-                 { u.x * u.y * l_c - u.z * s, u.y * u.y + (1 - u.y * u.y) * c,
-                   u.y * u.z * l_c + u.x * s, 0 },
-                 { u.x * u.z * l_c + u.y * s, u.y * u.z * l_c - u.x * s,
-                   u.z * u.z + (1 - u.z * u.z) * c, 0 },
-                 { 0, 0, 0, 1 } } };
+    m4 res = { u.x * u.x + (1 - u.x * u.x) * c,
+               u.x * u.y * l_c + u.z * s,
+               u.x * u.z * l_c - u.y * s,
+               0,
+               u.x * u.y * l_c - u.z * s,
+               u.y * u.y + (1 - u.y * u.y) * c,
+               u.y * u.z * l_c + u.x * s,
+               0,
+               u.x * u.z * l_c + u.y * s,
+               u.y * u.z * l_c - u.x * s,
+               u.z * u.z + (1 - u.z * u.z) * c,
+               0,
+               0,
+               0,
+               0,
+               1 };
     return res;
 }
 
@@ -1013,11 +1169,57 @@ inline m4 transpose(m4 a)
 {
     m4 res;
 
+#if 1
+    res.e[0]  = a.e[0];
+    res.e[1]  = a.e[4];
+    res.e[2]  = a.e[8];
+    res.e[3]  = a.e[12];
+    res.e[4]  = a.e[1];
+    res.e[5]  = a.e[5];
+    res.e[6]  = a.e[9];
+    res.e[7]  = a.e[13];
+    res.e[8]  = a.e[2];
+    res.e[9]  = a.e[6];
+    res.e[10] = a.e[10];
+    res.e[11] = a.e[14];
+    res.e[12] = a.e[3];
+    res.e[13] = a.e[7];
+    res.e[14] = a.e[11];
+    res.e[15] = a.e[15];
+#else
+
     for (s32 i = 0; i < 4; ++i) {
         for (s32 j = 0; j < 4; ++j) {
-            res.e[i][j] = a.e[j][i];
+            res.m[i][j] = a.m[j][i];
         }
     }
+#endif
+
+    return res;
+}
+
+// FIXME: this doesn't work??
+inline m4 proj_persp(f32 fov_y, f32 aspect, f32 n, f32 f)
+{
+    m4 res;
+
+    f32 top    = n * tanf(fov_y * 0.5f);
+    f32 bottom = -top;
+    f32 right  = top * aspect;
+    f32 left   = -right;
+
+    // MatrixFrustum(-right, right, -top, top, near, far);
+    f32 rl = right - left;
+    f32 tb = top - bottom;
+    f32 fn = f - n;
+
+    res.e[0]  = (n * 2.0f) / rl;
+    res.e[5]  = (n * 2.0f) / tb;
+    res.e[8]  = (right + left) / rl;
+    res.e[9]  = (top + bottom) / tb;
+    res.e[10] = -(f + n) / fn;
+    res.e[11] = -1.0f;
+    res.e[14] = -(f * n * 2.0f) / fn;
 
     return res;
 }
@@ -1041,10 +1243,8 @@ inline m4 proj_persp(f32 aspect_ratio, f32 focal_len)
     f32 e = (n + f) / (n - f);
 #endif
 
-    m4 res = { { { a * c, 0.0f, 0.0f, 0.0f },
-                 { 0.0f, b * c, 0.0f, 0.0f },
-                 { 0.0f, 0.0f, d, e },
-                 { 0.0f, 0.0f, -1.0f, 0.0f } } };
+    m4 res = { a * c, 0.0f, 0.0f, 0.0f, 0.0f, b * c, 0.0f,  0.0f,
+               0.0f,  0.0f, d,    e,    0.0f, 0.0f,  -1.0f, 0.0f };
 
     return res;
 }
@@ -1054,30 +1254,26 @@ inline m4 proj_ortho(f32 aspect_ratio)
     f32 a = 1.0f;
     f32 b = aspect_ratio;
 
-    m4 res = { { { a, 0.0f, 0.0f, 0.0f },
-                 { 0.0f, b, 0.0f, 0.0f },
-                 { 0.0f, 0.0f, 1.0f, 0.0f },
-                 { 0.0f, 0.0f, 0.0f, 1.0f } } };
+    m4 res = { a,    0.0f, 0.0f, 0.0f, 0.0f, b,    0.0f, 0.0f,
+               0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f };
 
     return res;
 }
 
 inline m4 col_3x3(v3 x, v3 y, v3 z)
 {
-    m4 res = { { { x.x, y.x, z.x, 0.0f },
-                 { x.y, y.y, z.y, 0.0f },
-                 { x.z, y.z, z.z, 0.0f },
-                 { 0.0f, 0.0f, 0.0f, 1.0f } } };
+    m4 res = {
+        x.x, y.x, z.x, 0.0f, x.y, y.y, z.y, 0.0f, x.z, y.z, z.z, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f
+    };
 
     return res;
 }
 
 inline m4 row_3x3(v3 x, v3 y, v3 z)
 {
-    m4 res = { { { x.x, x.y, x.z, 0.0f },
-                 { y.x, y.y, y.z, 0.0f },
-                 { z.x, z.y, z.z, 0.0f },
-                 { 0.0f, 0.0f, 0.0f, 1.0f } } };
+    m4 res = {
+        x.x, x.y, x.z, 0.0f, y.x, y.y, y.z, 0.0f, z.x, z.y, z.z, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f
+    };
 
     return res;
 }
@@ -1085,42 +1281,40 @@ inline m4 translate(v3 t)
 {
     m4 res = mat::identity();
 
-    res.e[0][3] = t.x;
-    res.e[1][3] = t.y;
-    res.e[2][3] = t.z;
+    res.m[0][3] = t.x;
+    res.m[1][3] = t.y;
+    res.m[2][3] = t.z;
 
     return res;
 }
 
 inline m4 translate(m4 a, v3 t)
 {
-    a.e[0][3] = t.x;
-    a.e[1][3] = t.y;
-    a.e[2][3] = t.z;
+    a.m[0][3] = t.x;
+    a.m[1][3] = t.y;
+    a.m[2][3] = t.z;
 
     return a;
 }
 
 inline v3 get_col(m4 a, u32 c)
 {
-    v3 res = { a.e[0][c], a.e[1][c], a.e[2][c] };
+    v3 res = { a.m[0][c], a.m[1][c], a.m[2][c] };
 
     return res;
 }
 
 inline v3 get_row(m4 a, u32 r)
 {
-    v3 res = { a.e[r][0], a.e[r][1], a.e[r][2] };
+    v3 res = { a.m[r][0], a.m[r][1], a.m[r][2] };
 
     return res;
 }
 
 inline m4 uvn_to_m4(v3 pos, v3 u, v3 v, v3 n)
 {
-    m4 res = { { { u.x, u.y, u.z, -pos.x },
-                 { v.x, v.y, v.z, -pos.y },
-                 { n.x, n.y, n.z, -pos.z },
-                 { 0.0f, 0.0f, 0.0f, 1.0f } } };
+    m4 res = { u.x, u.y, u.z, -pos.x, v.x,  v.y,  v.z,  -pos.y,
+               n.x, n.y, n.z, -pos.z, 0.0f, 0.0f, 0.0f, 1.0f };
 
     return res;
 }
@@ -1132,10 +1326,19 @@ inline m4 loot_at(v3 from, v3 to)
     v3 right   = vec::cross(vec::normalize(t), forward);
     v3 up      = vec::cross(forward, right);
 
-    m4 res = { { { right.x, right.y, right.z, 0.0f },
-                 { up.x, up.y, up.z, 0.0f },
-                 { forward.x, forward.y, forward.z, 0.0f },
-                 { from.x, from.y, from.z, 1.0f } } };
+    m4 res = { right.x,   right.y,   right.z,   0.0f, up.x,   up.y,   up.z,   0.0f,
+               forward.x, forward.y, forward.z, 0.0f, from.x, from.y, from.z, 1.0f };
+
+    return res;
+}
+
+m4 get_uvn(v3 forward, v3 up, v3 pos)
+{
+    v3 n = vec::normalize(forward);
+    v3 u = vec::normalize(vec::cross(up, n));
+    v3 v = vec::cross(n, u);
+
+    m4 res = mat::row_3x3(u, v, n) * mat::translate(-pos);
 
     return res;
 }
@@ -1144,7 +1347,7 @@ inline m4 loot_at(v3 from, v3 to)
 inline void print_m4(m4 a)
 {
     for (s32 i = 0; i < 4; ++i) {
-        printf("%f, %f, %f, %f\n", a.e[i][0], a.e[i][1], a.e[i][2], a.e[i][3]);
+        printf("%f, %f, %f, %f\n", a.m[i][0], a.m[i][1], a.m[i][2], a.m[i][3]);
     }
 }
 

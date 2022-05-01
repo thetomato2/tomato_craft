@@ -8,40 +8,55 @@
 
 namespace tom
 {
-struct camera
+
+class camera
 {
-    f32 speed;
-    f32 angle_h;
-    f32 angle_v;
-    v2 mouse_pos;
+public:
     v3 pos;
-    v3 target;
-    v3 up;
-};
+    f32 speed;
 
-enum class camera_mode
-{
-    look_at,
-    fps
-};
+    enum class mode
+    {
+        look_at,
+        fps
+    };
 
-enum class camera_mov_dir
-{
-    forward,
-    backward,
-    up,
-    down,
-    right,
-    left,
-};
+    enum class mov_dir
+    {
+        forward,
+        backward,
+        up,
+        down,
+        right,
+        left,
+    };
 
-camera camera_init();
-camera camera_init(v3 pos, v3 target, v3 up);
-void camera_move(camera &cam, camera_mov_dir dir, f32 dt, bool distance = false);
-void camera_mouse_look(camera &cam, input::mouse ms, window_dims win_dims);
-void camera_look_at(camera &cam, v3 &target_pos, input::keyboard kb, input::mouse ms,
-                    window_dims win_dims, f32 *dist = nullptr);
-m4 camera_get_view(camera cam);
+    camera();
+    camera(v3 pos, v3 target, v3 up);
+    ~camera();
+
+    void move(mov_dir dir, f32 dt, bool distance = false);
+    void mouse_look(input::mouse ms, window_dims win_dims);
+    void orbit(input::keyboard kb, input::mouse ms, window_dims win_dims, f32 *dist = nullptr,
+               v3 *target_pos = nullptr);
+    void pan(mov_dir dir, f32 dt, bool distance = false);
+
+    m4 get_view();
+
+    // void mode(const camera::mode mode) { _mode = mode; }
+
+private:
+    f32 _angle_h;
+    f32 _angle_v;
+    v2 _mouse_pos;
+    v3 _up;
+    v3 _target;
+    v3 _target_pos;
+    // camera::mode _mode;
+
+    void init_angle();
+    void default_init();
+};
 
 }  // namespace tom
 

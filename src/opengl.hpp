@@ -39,6 +39,8 @@ struct wgl_func_ptrs
     PFNGLGENERATEMIPMAPPROC gen_mipmap;
     PFNGLACTIVETEXTUREPROC active_tex;
     PFNGLVALIDATEPROGRAMPROC validate_program;
+    PFNGLDELETEBUFFERSPROC delete_buffers;
+    PFNGLDELETEVERTEXARRAYSPROC delete_vert_arr;
 };
 
 using get_ogl_func_ptr = void *(*)(const char *);
