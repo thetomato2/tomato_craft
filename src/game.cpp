@@ -1,5 +1,4 @@
 #include "game.hpp"
-#include "shader.hpp"
 
 namespace tom
 {
@@ -48,83 +47,9 @@ bool init(thread_context *thread, game_memory *memory)
 
     ogl::enable(GL_DEPTH_TEST);
 
-    // clang-format off
-        f32 verts[] = {
-            -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-             0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
-             0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-             0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-            -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-            -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-
-            -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-             0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-             0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-             0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-            -0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
-            -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-
-            -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-            -0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-            -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-            -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-            -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-            -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-
-             0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-             0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-             0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-             0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-             0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-             0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-
-            -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-             0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
-             0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-             0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-            -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-            -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-
-            -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-             0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-             0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-             0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-            -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
-            -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
-        };
-        
-        s32 inds[36];
-        for (s32 i = 0; i < ARRAY_COUNT(inds); ++i) {
-            inds[i] = i;
-        }
-
-    // clang-format on
-
-    u32 vbo, vao, ebo;
-    gfx.gen_vert_arr(1, &vao);
-    gfx.gen_buffers(1, &vbo);
-    gfx.gen_buffers(1, &ebo);
-    gfx.bind_vert_arr(vao);
-
-    gfx.bind_buffer(GL_ARRAY_BUFFER, vbo);
-    gfx.buffer_data(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_STATIC_DRAW);
-
-    gfx.bind_buffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-    gfx.buffer_data(GL_ELEMENT_ARRAY_BUFFER, sizeof(inds), inds, GL_STATIC_DRAW);
-
-    // position attribute
-    gfx.vertex_attrib_ptr(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)0);
-    gfx.enable_vert_attrib_array(0);
-    // texture coord attribute
-    gfx.vertex_attrib_ptr(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)(3 * sizeof(float)));
-    gfx.enable_vert_attrib_array(1);
-
+    new (&state->cube) model(gfx, "NAN");
     new (&state->tex1) texture(GL_TEXTURE_2D, "../../../assets/images/dirt.png", gfx);
     new (&state->tex2) texture(GL_TEXTURE_2D, "../../../assets/images/pika.png", gfx);
-
-    state->vbo = vbo;
-    state->ebo = ebo;
-    state->vao = vao;
 
     state->main_shader.use();
     state->main_shader.set_s32("our_texture", 0);
@@ -135,7 +60,6 @@ bool init(thread_context *thread, game_memory *memory)
     state->camera.speed = 5.0f;
 
     state->scaler = 1.0f;
-    state->inds   = 12;
 
     state->max_cubes = 100;
     state->n_cubes   = 1;
@@ -158,6 +82,10 @@ bool init(thread_context *thread, game_memory *memory)
     s32 n_tex_units = 0;
     ogl::get_int4(GL_MAX_TEXTURE_UNITS, &n_tex_units);
     printf("Max Texture Units: %d\n", n_tex_units);
+
+    auto cube_mesh =
+        memory->plat_io.platform_read_entire_file(thread, "../../../assets/mesh/cube.obj");
+    TOM_ASSERT(cube_mesh.content_size > 0);
 
     return true;
 }
@@ -206,7 +134,6 @@ void update(thread_context *thread, game_memory *memory, game_input input, f32 d
         ImGui::SliderAngle("y rot", &state->model_rot.y);
         ImGui::SliderAngle("z rot", &state->model_rot.z);
         ImGui::SliderFloat("scale", &state->scaler, 0.1f, 3.0f);
-        ImGui::SliderInt("inds", &state->inds, 0, 12);
         ImGui::SliderInt("num cubes", &state->n_cubes, 1, 100);
         ImGui::SliderInt("num cubes z", &state->n_cubes_z, 1, 100);
         ImGui::End();
@@ -249,15 +176,6 @@ void update(thread_context *thread, game_memory *memory, game_input input, f32 d
 
     state->main_shader.set_m4("vp", vp);
 
-    // gfx.bind_vert_arr(state->vao);
-    gfx.bind_buffer(GL_ARRAY_BUFFER, state->vbo);
-    gfx.bind_buffer(GL_ELEMENT_ARRAY_BUFFER, state->ebo);
-    // position attribute
-    gfx.enable_vert_attrib_array(0);
-    gfx.vertex_attrib_ptr(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)0);
-    // texture coord attribute
-    gfx.enable_vert_attrib_array(1);
-    gfx.vertex_attrib_ptr(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)(3 * sizeof(float)));
 
     for (s32 y = 0; y < state->n_cubes_z; ++y) {
         for (s32 z = 0; z < state->n_cubes; ++z) {
@@ -265,13 +183,11 @@ void update(thread_context *thread, game_memory *memory, game_input input, f32 d
                 u32 cur_mat_ind = x + z * state->max_cubes + y * math::square(state->max_cubes);
                 m4 temp         = state->matricies[cur_mat_ind];
                 state->main_shader.set_m4("model", state->matricies[cur_mat_ind]);
-                ogl::draw_elements(GL_TRIANGLES, state->inds * 3, GL_UNSIGNED_INT, 0);
+                state->cube.draw();
             }
         }
     }
 
-    gfx.disable_vert_attrib_array(0);
-    gfx.disable_vert_attrib_array(1);
     ImGui::Render();
     // NOTE: this is where ImGui is drawn
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -281,8 +197,6 @@ void update(thread_context *thread, game_memory *memory, game_input input, f32 d
 bool exit(thread_context *thread, game_memory *memory)
 {
     game_state *state = (game_state *)memory->permanent_storage;
-    memory->ogl_func_ptrs.delete_buffers(1, &state->ebo);
-    memory->ogl_func_ptrs.delete_vert_arr(1, &state->vao);
 
     return true;
 }

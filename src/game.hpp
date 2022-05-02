@@ -8,6 +8,7 @@
 #include "input.hpp"
 #include "opengl.hpp"
 #include "shader.hpp"
+#include "model.hpp"
 #include "texture.hpp"
 
 namespace tom
@@ -88,14 +89,18 @@ struct game_state
     f32 fov_old;
     f32 time_last;
     v4 clear_color;
-    u32 vbo, vao, ebo, text_1;
+
+    u32 text_1;
     shader main_shader;
+    model cube;
     texture tex1;
     texture tex2;
+
     f32 scaler;
+
     v3 model_loc;
     v3 model_rot;
-    s32 inds;
+
     s32 max_cubes;
     s32 n_cubes;
     s32 n_cubes_z;

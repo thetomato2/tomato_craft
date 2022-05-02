@@ -32,6 +32,9 @@ set(EXTERN_DIR ${CMAKE_CURRENT_LIST_DIR}/external)
 # set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${BUILD_DIR})
 # set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${BUILD_DIR})
 
+# find_package(assimp CONFIG REQUIRED)
+
+
 list(APPEND COMPILE_FLAGS
     -fp:fast
     -fp:except-
@@ -52,7 +55,7 @@ list(APPEND COMPILE_FLAGS
     # -Z7
     -Zc:inline
     -Zc:wchar_t
-    # -Zo
+  ann  # -Zo
     )
 
 list(APPEND COMPILE_DEFS
@@ -122,10 +125,15 @@ add_executable(tomato_craft WIN32
     ${SOURCE_DIR}/utils.hpp
     ${SOURCE_DIR}/game.hpp
     ${SOURCE_DIR}/game.cpp
+    ${SOURCE_DIR}/mesh.hpp
+    ${SOURCE_DIR}/mesh.cpp
+    ${SOURCE_DIR}/model.hpp
+    ${SOURCE_DIR}/model.cpp
     ${SOURCE_DIR}/opengl.hpp
     ${SOURCE_DIR}/opengl.cpp
     ${SOURCE_DIR}/shader.hpp
     ${SOURCE_DIR}/shader.cpp
+    ${SOURCE_DIR}/small_vector.hpp
     ${SOURCE_DIR}/texture.hpp
     ${SOURCE_DIR}/texture.cpp
     ${SOURCE_DIR}/win32_platform.hpp
