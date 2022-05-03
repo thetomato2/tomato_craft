@@ -47,9 +47,39 @@ bool init(thread_context *thread, game_memory *memory)
 
     ogl::enable(GL_DEPTH_TEST);
 
-    new (&state->cube) model(gfx, "NAN");
-    new (&state->tex1) texture(GL_TEXTURE_2D, "../../../assets/images/dirt.png", gfx);
-    new (&state->tex2) texture(GL_TEXTURE_2D, "../../../assets/images/pika.png", gfx);
+    model::data_paths cube_paths = { .name   = "cube",
+                                     .mesh   = "../../../assets/mesh/cube.obj",
+                                     .albedo = "../../../assets/images/red.png",
+                                     .normal = nullptr };
+
+    model::data_paths cone_paths = { .name   = "cone",
+                                     .mesh   = "../../../assets/mesh/cone.obj",
+                                     .albedo = "../../../assets/images/green.png",
+                                     .normal = nullptr };
+
+    model::data_paths sphere_paths = { .name   = "sphere",
+                                     .mesh   = "../../../assets/mesh/sphere.obj",
+                                     .albedo = "../../../assets/images/blue.png",
+                                     .normal = nullptr };
+
+    model::data_paths tomato_paths = { .name   = "tomato",
+                                       .mesh   = "../../../assets/mesh/tomato.obj",
+                                       .albedo = "../../../assets/images/tomato.png",
+                                       .normal = nullptr };
+
+    model::data_paths monkey_paths = { .name   = "monkey",
+                                       .mesh   = "../../../assets/mesh/monkey.obj",
+                                       .albedo = "../../../assets/images/pika.png",
+                                       .normal = nullptr };
+
+    // FIXME: the memory block gets cleard and probably leaks the original models vector
+    new (&state->models) vector<model>();
+
+    state->models.emplace_back(gfx, memory->plat_io, cube_paths);
+    state->models.emplace_back(gfx, memory->plat_io, cone_paths);
+    state->models.emplace_back(gfx, memory->plat_io, sphere_paths);
+    state->models.emplace_back(gfx, memory->plat_io, tomato_paths);
+    state->models.emplace_back(gfx, memory->plat_io, monkey_paths);
 
     state->main_shader.use();
     state->main_shader.set_s32("our_texture", 0);
@@ -70,22 +100,9 @@ bool init(thread_context *thread, game_memory *memory)
     s32 total_cubes  = math::cube(state->max_cubes);
     state->matricies = (m4 *)push_size(&state->arena, sizeof(m4) * total_cubes);
 
-    for (s32 y = 0; y < state->max_cubes; ++y) {
-        for (s32 z = 0; z < state->max_cubes; ++z) {
-            for (s32 x = 0; x < state->max_cubes; ++x) {
-                u32 cur_mat_ind = x + z * state->max_cubes + y * math::square(state->max_cubes);
-                state->matricies[cur_mat_ind] = mat::translate({ (f32)x, (f32)y, (f32)z });
-            }
-        }
-    }
-
     s32 n_tex_units = 0;
     ogl::get_int4(GL_MAX_TEXTURE_UNITS, &n_tex_units);
     printf("Max Texture Units: %d\n", n_tex_units);
-
-    auto cube_mesh =
-        memory->plat_io.platform_read_entire_file(thread, "../../../assets/mesh/cube.obj");
-    TOM_ASSERT(cube_mesh.content_size > 0);
 
     return true;
 }
@@ -117,11 +134,6 @@ void update(thread_context *thread, game_memory *memory, game_input input, f32 d
     ogl::clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     if (input::is_key_up(input.keyboard.d2)) state->line_mode = !state->line_mode;
-
-    if (input::is_key_down(input.keyboard.d1))
-        state->tex2.bind(GL_TEXTURE0);
-    else
-        state->tex1.bind(GL_TEXTURE0);
 
     state->main_shader.use();
 
@@ -176,16 +188,10 @@ void update(thread_context *thread, game_memory *memory, game_input input, f32 d
 
     state->main_shader.set_m4("vp", vp);
 
-
-    for (s32 y = 0; y < state->n_cubes_z; ++y) {
-        for (s32 z = 0; z < state->n_cubes; ++z) {
-            for (s32 x = 0; x < state->n_cubes; ++x) {
-                u32 cur_mat_ind = x + z * state->max_cubes + y * math::square(state->max_cubes);
-                m4 temp         = state->matricies[cur_mat_ind];
-                state->main_shader.set_m4("model", state->matricies[cur_mat_ind]);
-                state->cube.draw();
-            }
-        }
+    for (auto &ml : state->models) {
+        state->main_shader.set_m4("model", model);
+        ml.draw();
+        model = mat::translate(model, { 3.0f, 0.0f, 0.0f });
     }
 
     ImGui::Render();

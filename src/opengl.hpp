@@ -41,6 +41,7 @@ struct wgl_func_ptrs
     PFNGLVALIDATEPROGRAMPROC validate_program;
     PFNGLDELETEBUFFERSPROC delete_buffers;
     PFNGLDELETEVERTEXARRAYSPROC delete_vert_arr;
+    PFNGLDRAWELEMENTSBASEVERTEXPROC draw_elements_base_vert;
 };
 
 using get_ogl_func_ptr = void *(*)(const char *);

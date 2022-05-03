@@ -4,9 +4,14 @@
 
 namespace tom
 {
-
-texture::texture(GLenum texture_target, const char *path, ogl::wgl_func_ptrs gfx)
+texture::texture() : _active(false)
 {
+}
+
+texture::texture(texture::type type, GLenum texture_target, const char *path,
+                 ogl::wgl_func_ptrs gfx)
+{
+    _type       = type;
     _tex_target = texture_target;
     _path       = path;
     _gfx        = gfx;
@@ -33,6 +38,8 @@ texture::texture(GLenum texture_target, const char *path, ogl::wgl_func_ptrs gfx
         INVALID_CODE_PATH;
     }
     stbi_image_free(data);
+
+    _active = true;
 }
 
 void texture::bind(GLenum tex_unit)

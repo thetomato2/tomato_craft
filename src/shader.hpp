@@ -2,7 +2,6 @@
 #define TOMATO_SHADER_HPP_
 
 #include "common.hpp"
-#include "math.hpp"
 // #include "opengl.hpp"
 // #include "game.hpp"
 

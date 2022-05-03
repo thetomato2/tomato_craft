@@ -5,6 +5,8 @@
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
+#include <cstdio>
+#include <cstdlib>
 
 #ifndef NOMINMAX
     #define NOMINMAX
@@ -231,6 +233,30 @@ inline u32 safe_truncate_u32_to_u64(u64 value)
     u32 result = scast(u32, value);
     return result;
 }
+
+struct read_file_result
+{
+    szt content_size;
+    void *contents;
+};
+
+using platform_free_file_memory  = void (*)(thread_context *, void *);
+using platform_read_entire_file  = read_file_result (*)(thread_context *, const char *);
+using platform_write_entire_file = b32 (*)(thread_context *, const char *, u64, void *);
+
+#if TOM_OPENGL
+using platform_get_ogl_func_ptr = void *(*)(const char *);
+#endif
+
+struct platform_io
+{
+    platform_free_file_memory platform_free_file_memory;
+    platform_read_entire_file platform_read_entire_file;
+    platform_write_entire_file platform_write_entire_file;
+#if TOM_OPENGL
+    platform_get_ogl_func_ptr ogl_get_func_ptr;
+#endif
+};
 
 }  // namespace tom
 #endif  // TOMATO_COMMON_HPP_

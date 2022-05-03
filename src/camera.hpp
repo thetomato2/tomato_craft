@@ -3,7 +3,6 @@
 #define TOMATO_CAMERA_HPP_
 
 #include "common.hpp"
-#include "math.hpp"
 #include "input.hpp"
 
 namespace tom

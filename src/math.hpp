@@ -979,7 +979,7 @@ inline v3 rotate(v3 v, v3 u, f32 a)
 }
 
 // transform a v3 by quat
-v3 rotate(v3 v, quat q)
+inline v3 rotate(v3 v, quat q)
 {
     v3 res;
 
@@ -1290,9 +1290,9 @@ inline m4 translate(v3 t)
 
 inline m4 translate(m4 a, v3 t)
 {
-    a.m[0][3] = t.x;
-    a.m[1][3] = t.y;
-    a.m[2][3] = t.z;
+    a.m[0][3] += t.x;
+    a.m[1][3] += t.y;
+    a.m[2][3] += t.z;
 
     return a;
 }
@@ -1332,7 +1332,7 @@ inline m4 loot_at(v3 from, v3 to)
     return res;
 }
 
-m4 get_uvn(v3 forward, v3 up, v3 pos)
+inline m4 get_uvn(v3 forward, v3 up, v3 pos)
 {
     v3 n = vec::normalize(forward);
     v3 u = vec::normalize(vec::cross(up, n));
@@ -1564,4 +1564,5 @@ inline bool intersect(rect3 a, rect3 b)
 }  // namespace rec
 
 }  // namespace tom
+
 #endif  // TOMATO_MATH_HPP_

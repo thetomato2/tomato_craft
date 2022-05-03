@@ -120,22 +120,25 @@ add_executable(tomato_craft WIN32
     ${SOURCE_DIR}/camera.hpp
     ${SOURCE_DIR}/camera.cpp
     ${SOURCE_DIR}/color.hpp
+    ${SOURCE_DIR}/entity.hpp
     ${SOURCE_DIR}/intrinsic.hpp
-    ${SOURCE_DIR}/math.hpp
-    ${SOURCE_DIR}/utils.hpp
     ${SOURCE_DIR}/game.hpp
     ${SOURCE_DIR}/game.cpp
+    ${SOURCE_DIR}/math.hpp
     ${SOURCE_DIR}/mesh.hpp
     ${SOURCE_DIR}/mesh.cpp
     ${SOURCE_DIR}/model.hpp
     ${SOURCE_DIR}/model.cpp
+    ${SOURCE_DIR}/obj_loader.hpp
+    ${SOURCE_DIR}/obj_loader.cpp
     ${SOURCE_DIR}/opengl.hpp
     ${SOURCE_DIR}/opengl.cpp
     ${SOURCE_DIR}/shader.hpp
     ${SOURCE_DIR}/shader.cpp
-    ${SOURCE_DIR}/small_vector.hpp
+    ${SOURCE_DIR}/vector.hpp
     ${SOURCE_DIR}/texture.hpp
     ${SOURCE_DIR}/texture.cpp
+    ${SOURCE_DIR}/utils.hpp
     ${SOURCE_DIR}/win32_platform.hpp
     ${SOURCE_DIR}/win32_platform.cpp
     )

@@ -10,33 +10,11 @@
 #include "shader.hpp"
 #include "model.hpp"
 #include "texture.hpp"
+#include "obj_loader.hpp"
+#include "vector.hpp"
 
 namespace tom
 {
-
-struct read_file_result
-{
-    szt content_size;
-    void *contents;
-};
-
-using platform_free_file_memory  = void (*)(thread_context *, void *);
-using platform_read_entire_file  = read_file_result (*)(thread_context *, const char *);
-using platform_write_entire_file = b32 (*)(thread_context *, const char *, u64, void *);
-
-#if TOM_OPENGL
-using platform_get_ogl_func_ptr = void *(*)(const char *);
-#endif
-
-struct platform_io
-{
-    platform_free_file_memory platform_free_file_memory;
-    platform_read_entire_file platform_read_entire_file;
-    platform_write_entire_file platform_write_entire_file;
-#if TOM_OPENGL
-    platform_get_ogl_func_ptr ogl_get_func_ptr;
-#endif
-};
 
 namespace game
 {
@@ -92,7 +70,9 @@ struct game_state
 
     u32 text_1;
     shader main_shader;
-    model cube;
+
+    vector<model> models;
+
     texture tex1;
     texture tex2;
 

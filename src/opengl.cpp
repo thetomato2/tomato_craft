@@ -42,6 +42,8 @@ bool init_func_ptrs(wgl_func_ptrs *func_ptrs, get_ogl_func_ptr get_func_ptr)
     func_ptrs->validate_program = (PFNGLVALIDATEPROGRAMPROC)get_func_ptr("glValidateProgram");
     func_ptrs->delete_buffers   = (PFNGLDELETEBUFFERSPROC)get_func_ptr("glDeleteBuffers");
     func_ptrs->delete_vert_arr  = (PFNGLDELETEVERTEXARRAYSPROC)get_func_ptr("glDeleteVertexArrays");
+    func_ptrs->draw_elements_base_vert =
+        (PFNGLDRAWELEMENTSBASEVERTEXPROC)get_func_ptr("glDrawElementsBaseVertex");
 
     return true;
 }
