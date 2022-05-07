@@ -9,12 +9,19 @@ namespace tom
 {
 class entity
 {
+    enum class type
+    {
+        none,
+        obj,
+        light
+    };
+
 public:
     v3 pos;
 
     entity();
 
-    const char get_name() const { return _name; }
+    const char *name() const { return _name; }
 
 private:
     const char *_name;

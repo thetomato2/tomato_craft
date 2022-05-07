@@ -694,7 +694,7 @@ inline f32 dot(const v4 a, const v4 b)
     return inner(a, b);
 }
 
-v2 inline lerp(const v2 a, const v2 b, f32 val)
+inline v2 lerp(const v2 a, const v2 b, f32 val)
 {
     v2 res;
 
@@ -704,7 +704,7 @@ v2 inline lerp(const v2 a, const v2 b, f32 val)
     return res;
 }
 
-v3 inline lerp(const v3 a, const v3 b, f32 val)
+inline v3 lerp(const v3 a, const v3 b, f32 val)
 {
     v3 res;
 
@@ -715,7 +715,7 @@ v3 inline lerp(const v3 a, const v3 b, f32 val)
     return res;
 }
 
-v4 inline lerp(const v4 a, const v4 b, f32 val)
+inline v4 lerp(const v4 a, const v4 b, f32 val)
 {
     v4 res;
 
@@ -1122,6 +1122,7 @@ inline m4 rot_z(m4 a, f32 b)
 {
     return a * rot_z(b);
 }
+
 // u = arbitrary axis, a = angle
 inline m4 rotate(const v3 u, f32 a)
 {
@@ -1149,6 +1150,7 @@ inline m4 rotate(const v3 u, f32 a)
     return res;
 }
 
+// u = arbitrary axis, a = angle
 inline m4 rotate(m4 m, const v3 u, f32 a)
 {
     m4 res = m * rotate(u, a);

@@ -19,6 +19,10 @@ camera::camera(v3 pos, v3 target, v3 up)
     init_angle();
 }
 
+camera::~camera()
+{
+}
+
 void camera::init_angle()
 {
     v3 h_target = vec::normalize({ _target.x, 0.0f, _target.z });

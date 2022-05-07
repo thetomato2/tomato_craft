@@ -8,6 +8,7 @@
 #include "input.hpp"
 #include "opengl.hpp"
 #include "shader.hpp"
+#include "light.hpp"
 #include "model.hpp"
 #include "texture.hpp"
 #include "obj_loader.hpp"
@@ -69,9 +70,12 @@ struct game_state
     v4 clear_color;
 
     u32 text_1;
-    shader main_shader;
+    shader obj_shader;
+    shader light_shader;
+    f32 spec;
 
     vector<model> models;
+    vector<light> lights;
 
     texture tex1;
     texture tex2;

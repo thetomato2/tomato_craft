@@ -20,6 +20,7 @@ public:
     ~mesh();
 
     void bind();
+    void unbind();
 
     u32 ind_cnt() const { return _ind_cnt; }
     u32 vert_cnt() const { return _vert_cnt; }

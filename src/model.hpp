@@ -13,6 +13,8 @@ namespace tom
 class model
 {
 public:
+    v3 color;
+
     struct data_paths
     {
         const char *name;
@@ -25,7 +27,7 @@ public:
 
     void draw();
 
-    const char *get_name() const { return _name; }
+    const char *name() const { return _name; }
 
 private:
     const char *_name;

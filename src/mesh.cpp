@@ -29,6 +29,11 @@ void mesh::bind()
     _gfx.bind_vert_arr(_vao);
 }
 
+void mesh::unbind()
+{
+    _gfx.bind_vert_arr(0);
+}
+
 void mesh::load()
 {
     small_vector<f32, 1024> vert_pos;
@@ -44,9 +49,9 @@ void mesh::load()
         vert_pos.push_back(obj->pos.data()[obj->faces.data()[i].v1.pos - 1].z);
         vert_uv.push_back(obj->uv.data()[obj->faces.data()[i].v1.uv - 1].u);
         vert_uv.push_back(obj->uv.data()[obj->faces.data()[i].v1.uv - 1].v);
-        vert_nrm.push_back(obj->pos.data()[obj->faces.data()[i].v1.nrm - 1].x);
-        vert_nrm.push_back(obj->pos.data()[obj->faces.data()[i].v1.nrm - 1].y);
-        vert_nrm.push_back(obj->pos.data()[obj->faces.data()[i].v1.nrm - 1].z);
+        vert_nrm.push_back(obj->nrm.data()[obj->faces.data()[i].v1.nrm - 1].x);
+        vert_nrm.push_back(obj->nrm.data()[obj->faces.data()[i].v1.nrm - 1].y);
+        vert_nrm.push_back(obj->nrm.data()[obj->faces.data()[i].v1.nrm - 1].z);
         inds.push_back(j++);
 
         vert_pos.push_back(obj->pos.data()[obj->faces.data()[i].v2.pos - 1].x);
@@ -54,9 +59,9 @@ void mesh::load()
         vert_pos.push_back(obj->pos.data()[obj->faces.data()[i].v2.pos - 1].z);
         vert_uv.push_back(obj->uv.data()[obj->faces.data()[i].v2.uv - 1].u);
         vert_uv.push_back(obj->uv.data()[obj->faces.data()[i].v2.uv - 1].v);
-        vert_nrm.push_back(obj->pos.data()[obj->faces.data()[i].v2.nrm - 1].x);
-        vert_nrm.push_back(obj->pos.data()[obj->faces.data()[i].v2.nrm - 1].y);
-        vert_nrm.push_back(obj->pos.data()[obj->faces.data()[i].v2.nrm - 1].z);
+        vert_nrm.push_back(obj->nrm.data()[obj->faces.data()[i].v2.nrm - 1].x);
+        vert_nrm.push_back(obj->nrm.data()[obj->faces.data()[i].v2.nrm - 1].y);
+        vert_nrm.push_back(obj->nrm.data()[obj->faces.data()[i].v2.nrm - 1].z);
         inds.push_back(j++);
 
         vert_pos.push_back(obj->pos.data()[obj->faces.data()[i].v3.pos - 1].x);
@@ -64,9 +69,9 @@ void mesh::load()
         vert_pos.push_back(obj->pos.data()[obj->faces.data()[i].v3.pos - 1].z);
         vert_uv.push_back(obj->uv.data()[obj->faces.data()[i].v3.uv - 1].u);
         vert_uv.push_back(obj->uv.data()[obj->faces.data()[i].v3.uv - 1].v);
-        vert_nrm.push_back(obj->pos.data()[obj->faces.data()[i].v3.nrm - 1].x);
-        vert_nrm.push_back(obj->pos.data()[obj->faces.data()[i].v3.nrm - 1].y);
-        vert_nrm.push_back(obj->pos.data()[obj->faces.data()[i].v3.nrm - 1].z);
+        vert_nrm.push_back(obj->nrm.data()[obj->faces.data()[i].v3.nrm - 1].x);
+        vert_nrm.push_back(obj->nrm.data()[obj->faces.data()[i].v3.nrm - 1].y);
+        vert_nrm.push_back(obj->nrm.data()[obj->faces.data()[i].v3.nrm - 1].z);
         inds.push_back(j++);
     }
 

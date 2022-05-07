@@ -8,7 +8,7 @@ project ("Tomato_Craft"
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
-set(CMAKE_UNITY_BUILD ON)
+set(CMAKE_UNITY_BUILD OFF)
 
 
 # Note: by default ENABLE_DEVELOPER_MODE is True
@@ -124,6 +124,8 @@ add_executable(tomato_craft WIN32
     ${SOURCE_DIR}/intrinsic.hpp
     ${SOURCE_DIR}/game.hpp
     ${SOURCE_DIR}/game.cpp
+    ${SOURCE_DIR}/light.hpp
+    ${SOURCE_DIR}/light.cpp
     ${SOURCE_DIR}/math.hpp
     ${SOURCE_DIR}/mesh.hpp
     ${SOURCE_DIR}/mesh.cpp

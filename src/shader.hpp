@@ -36,6 +36,7 @@ public:
     void set_b32(const char *name, b32 val);
     void set_s32(const char *name, s32 val);
     void set_f32(const char *name, f32 val);
+    void set_v3(const char *name, v3 val);
     void set_v4(const char *name, v4 val);
     void set_m4(const char *name, m4 val);
 

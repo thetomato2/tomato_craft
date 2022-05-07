@@ -141,6 +141,13 @@ void shader::set_f32(const char *name, const f32 val)
     _func_ptrs->set_uniform_f32(uni_loc, val);
 }
 
+void shader::set_v3(const char *name, const v3 val)
+{
+    s32 uni_loc = _func_ptrs->get_uniform_loc(_id, name);
+    TOM_ASSERT(uni_loc != -1);  // failed to find uniform
+    _func_ptrs->set_uniform_v3(uni_loc, 1, &val.e[0]);
+}
+
 void shader::set_v4(const char *name, const v4 val)
 {
     s32 uni_loc = _func_ptrs->get_uniform_loc(_id, name);

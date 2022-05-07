@@ -22,14 +22,27 @@ public:
         _capacity = 2;
         _size     = 0;
         _data     = malloc(sizeof(T) * _capacity);
-        s32 x = 0;
     }
-    ~vector() { delete[] _data; }
+    ~vector() { free(_data); }
 
     // TODO: implement  copy/move constructors
-    vector(const vector &) = delete;
-    vector(vector &&)      = delete;
-    vector &operator=(const vector &) = delete;
+    vector(const vector &other)
+    {
+        _capacity = 2;
+        _size = 0;
+        _data     = malloc(sizeof(T) * _capacity);
+        resize(other.size());
+        memcpy(_data, other.data(), sizeof(T) * _size);
+    }
+    vector &operator=(const vector &lhs)
+    {
+        _capacity = 2;
+        _size = 0;
+        _data     = malloc(sizeof(T) * _capacity);
+        resize(lhs.size());
+        memcpy(_data, lhs.data(), sizeof(T) * _size);
+    }
+    vector(vector &&) = delete;
     vector &operator=(vector &&) = delete;
 
     void push_back(const T &item)
@@ -38,6 +51,11 @@ public:
             grow();
         }
         reinterpret_cast<T *>(_data)[_size++] = item;
+    }
+
+    void pop_back()
+    {
+        if (_size != 0) reinterpret_cast<T *>(_data)[--_size].~T();
     }
 
     template<class... Args>
@@ -55,12 +73,31 @@ public:
         if (new_size > _capacity) {
             grow(new_size);
         }
+
+        if (new_size < _size) {
+            auto data_ptr = reinterpret_cast<T *>(_data);
+            for (szt i = new_size; i < _size; ++i) {
+                data_ptr[i].~T();
+            }
+        }
+
         _size = new_size;
+    }
+
+    void clear()
+    {
+        auto data_ptr = reinterpret_cast<T *>(_data);
+        for (szt i = 0; i < _size; ++i) {
+            data_ptr[i].~T();
+        }
+        _size = 0;
     }
 
     szt size() const { return _size; }
     szt capacity() const { return _capacity; }
+    bool empty() const { return _size == 0; }
     void *data() { return (void *)_data; }
+    void *data() const { return (void *)_data; }
 
     T *begin() { return reinterpret_cast<T *>(_data); }
     T *end() { return reinterpret_cast<T *>(_data) + _size; }
@@ -83,6 +120,7 @@ private:
     void grow()
     {
         // TODO: option to use game memory block?
+        // TODO:  better grow algorithm?
         szt new_capacity = _capacity * 2;
 
         void *old_storage = _data;
@@ -95,6 +133,20 @@ private:
         free(old_storage);
     }
 
+    void grow(szt new_capacity)
+    {
+        if (new_capacity > _capacity) {
+            void *old_storage = _data;
+            void *new_storage = malloc(sizeof(T) * new_capacity);
+            memcpy(new_storage, old_storage, _size * sizeof(T));
+
+            _data     = new_storage;
+            _capacity = new_capacity;
+
+            free(old_storage);
+        }
+    }
+
     void *_data;
     szt _size;
     szt _capacity;
@@ -105,7 +157,7 @@ private:
 /// When the growing gets bigger than this small cache a dynamic growing algorithm will be
 /// used.
 // --------------------------------------------------------------------------------------------
-template<typename T, u32 Capacity>
+template<typename T, szt Capacity>
 class small_vector
 {
 public:
@@ -188,6 +240,57 @@ private:
     szt _size;
     szt _capacity;
     T _inplace_storage[Capacity];
+};
+
+// --------------------------------------------------------------------------------------------
+/// C-array wrapper
+// --------------------------------------------------------------------------------------------
+
+template<typename T, szt Size>
+class array
+{
+public:
+    array() { _size = Size; }
+    ~array() {}
+
+    // TODO: implement  copy/move constructors
+    array(const array &) = delete;
+    array(array &&)      = delete;
+    array &operator=(const array &) = delete;
+    array &operator=(array &&) = delete;
+
+    // just does a placement new
+    template<class... Args>
+    void emplace_at(szt i, Args const &...args)
+    {
+        TOM_ASSERT(i < _size);
+        if (i > _size) return;
+        new (&_data[i]) T(args...);
+    }
+
+    szt size() const { return _size; }
+    T *data() { return _data; }
+
+    T *begin() { return _data; }
+    T *end() { return _data + _size; }
+    T const *begin() const { return _data; }
+    T const *end() const { return _data + _size; }
+
+    T &operator[](szt i)
+    {
+        TOM_ASSERT(i < _size);
+        return _data[i];
+    }
+
+    T const &operator[](szt i) const
+    {
+        TOM_ASSERT(i < _size);
+        return _data[i];
+    }
+
+private:
+    T _data[Size];
+    szt _size;
 };
 
 }  // namespace tom

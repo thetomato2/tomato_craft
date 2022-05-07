@@ -31,6 +31,7 @@ struct wgl_func_ptrs
     PFNGLGETUNIFORMLOCATIONPROC get_uniform_loc;
     PFNGLUNIFORM1IPROC set_uniform_s32;
     PFNGLUNIFORM1FPROC set_uniform_f32;
+    PFNGLUNIFORM3FVPROC set_uniform_v3;
     PFNGLUNIFORM4FVPROC set_uniform_v4;
     PFNGLUNIFORMMATRIX4FVPROC set_uniform_m4;
     PFNGLDELETESHADERPROC delete_shader;

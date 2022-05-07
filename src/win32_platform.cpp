@@ -243,7 +243,6 @@ internal window_dims get_window_dimensions(HWND hwnd)
 
 internal void resize_dib_section(offscreen_buffer &buffer, s32 width, s32 height)
 {
-    // TODO: bulletproof this
     // maybe don't free first, free after, then free first if that fails
 
     if (buffer.memory) {
