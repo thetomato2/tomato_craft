@@ -1,7 +1,7 @@
 #ifndef TOMATO_MODEL_HPP_
 #define TOMATO_MODEL_HPP_
 
-#include "common.hpp"
+#include "core.hpp"
 #include "opengl.hpp"
 #include "mesh.hpp"
 #include "texture.hpp"

@@ -9,7 +9,7 @@ out vec3 frag_pos;
 out vec3 nrm;
 
 uniform mat4 model;
-uniform mat4 vp;
+uniform mat4 wvp;
 
 void main()
 {
@@ -17,5 +17,5 @@ void main()
    nrm = mat3(transpose(inverse(model))) * a_nrm;
    tex_coord = a_tex_coord;
 
-   gl_Position = vp * model * vec4(frag_pos, 1.0f);
+   gl_Position = wvp * model * vec4(frag_pos, 1.0f);
 };

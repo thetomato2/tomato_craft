@@ -114,6 +114,8 @@ static_assert(sizeof(b32) == 4, "b32 isn't 4 byte!s");
 #define global_var    static
 #define function      static
 
+#define Z_UP 1
+
 #ifdef TOM_WIN32
     #define TOM_DLL_EXPORT __declspec(dllexport)
 #else
@@ -123,7 +125,7 @@ static_assert(sizeof(b32) == 4, "b32 isn't 4 byte!s");
 #ifndef TOM_INTERNAL
     #define TOM_INTERNAL
 #endif
-
+    
 #ifdef TOM_INTERNAL
     #define TOM_ASSERT(x)                                               \
         if (!(x)) {                                                     \

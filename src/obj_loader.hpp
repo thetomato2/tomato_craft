@@ -1,7 +1,7 @@
 #ifndef TOMATO_OBJ_LOADER_HPP_
 #define TOMATO_OBJ_LOADER_HPP_
 
-#include "common.hpp"
+#include "core.hpp"
 #include "vector.hpp"
 
 namespace tom

@@ -1,6 +1,6 @@
 #ifndef TOMATO_INTRINSIC_HPP_
 #define TOMATO_INTRINSIC_HPP_
-#include "common.hpp"
+#include "core.hpp"
 
 namespace tom
 {

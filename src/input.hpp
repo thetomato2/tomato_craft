@@ -1,6 +1,6 @@
 #ifndef TOMATO_INPUT_HPP_
 #define TOMATO_INPUT_HPP_
-#include "common.hpp"
+#include "core.hpp"
 
 namespace tom
 {

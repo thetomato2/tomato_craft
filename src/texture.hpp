@@ -1,7 +1,7 @@
 #ifndef TOMATO_TEXTURE_HPP_
 #define TOMATO_TEXTURE_HPP_
 
-#include "common.hpp"
+#include "core.hpp"
 #include "opengl.hpp"
 
 namespace tom

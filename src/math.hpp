@@ -1,7 +1,7 @@
 #ifndef TOMATO_MATH_HPP_
 #define TOMATO_MATH_HPP_
 
-#include "common.hpp"
+#include "core.hpp"
 #include "intrinsic.hpp"
 
 namespace tom
@@ -1063,6 +1063,15 @@ inline v3 operator*(m4 a, v3 p)
 
 namespace mat
 {
+
+inline m4 y_up_to_z_up()
+{
+    m4 res = { 1.0f, 0.0f,  0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+               0.0f, -1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f };
+
+    return res;
+}
+
 inline m4 identity(f32 a = 1.0f)
 {
     m4 res = {

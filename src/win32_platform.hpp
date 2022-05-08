@@ -1,7 +1,7 @@
 #ifndef WIN32_PLATFORM_HPP_
 #define WIN32_PLATFORM_HPP_
 
-#include "common.hpp"
+#include "core.hpp"
 #include "game.hpp"
 #include "input.hpp"
 

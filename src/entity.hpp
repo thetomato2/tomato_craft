@@ -1,7 +1,7 @@
 #ifndef TOMATO_ENTITY_HPP_
 #define TOMATO_ENTITY_HPP_
 
-#include "common.hpp"
+#include "core.hpp"
 #include "opengl.hpp"
 #include "model.hpp"
 

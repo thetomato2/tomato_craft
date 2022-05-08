@@ -3,7 +3,7 @@
 
 #include <stb_image.h>
 
-#include "common.hpp"
+#include "core.hpp"
 #include "camera.hpp"
 #include "input.hpp"
 #include "opengl.hpp"
@@ -59,11 +59,13 @@ struct game_state
     input::mouse mouse;
     struct
     {
+        m4 world;
         m4 view;
         m4 proj;
-    } vp;
+    } wvp;
 
     camera camera;
+    v3 cam_pos;
     f32 fov;
     f32 fov_old;
     f32 time_last;

@@ -1,7 +1,7 @@
 #ifndef TOMATO_LIGHT_HPP_
 #define TOMATO_LIGHT_HPP_
 
-#include "common.hpp"
+#include "core.hpp"
 #include "opengl.hpp"
 #include "mesh.hpp"
 

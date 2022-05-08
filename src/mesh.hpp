@@ -1,7 +1,7 @@
 #ifndef TOMATO_MESH_HPP_
 #define TOMATO_MESH_HPP_
 
-#include "common.hpp"
+#include "core.hpp"
 #include "opengl.hpp"
 
 #define POS_LOC      0

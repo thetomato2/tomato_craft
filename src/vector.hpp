@@ -5,7 +5,7 @@ Based on CppCon 2016: Chandler Carruth "High Performance Code 201: Hybrid Data S
 #ifndef TOMATO_SMALLVECTOR_HPP_
 #define TOMATO_SMALLVECTOR_HPP_
 
-#include "common.hpp"
+#include "core.hpp"
 
 namespace tom
 {

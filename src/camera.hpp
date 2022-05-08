@@ -2,7 +2,7 @@
 #ifndef TOMATO_CAMERA_HPP_
 #define TOMATO_CAMERA_HPP_
 
-#include "common.hpp"
+#include "core.hpp"
 #include "input.hpp"
 
 namespace tom
@@ -11,7 +11,6 @@ namespace tom
 class camera
 {
 public:
-    v3 pos;
     f32 speed;
 
     enum class mode
@@ -41,10 +40,14 @@ public:
     void pan(mov_dir dir, f32 dt, bool distance = false);
 
     m4 get_view();
+    v3 get_pos() const;
+    void set_pos(v3 pos);
 
     // void mode(const camera::mode mode) { _mode = mode; }
 
 private:
+    // NOTE: in open_gl coords
+    v3 _pos;
     f32 _angle_h;
     f32 _angle_v;
     v2 _mouse_pos;

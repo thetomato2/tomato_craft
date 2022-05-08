@@ -9,10 +9,10 @@ camera::camera()
     init_angle();
 }
 
-camera::camera(v3 pos, v3 target, v3 up)
+camera::camera(v3 _pos, v3 target, v3 up)
 {
     default_init();
-    this->pos = pos;
+    this->_pos = _pos;
     // NOTE: can't assume passed in vectors are normalized
     _target = vec::normalize(target);
     _up     = vec::normalize(up);
@@ -25,8 +25,13 @@ camera::~camera()
 
 void camera::init_angle()
 {
+#if 0
+    v3 h_target = vec::normalize({ _target.x, 0.0f, -_target.y });
+    f32 angle   = math::to_degree(asin(abs(-h_target.y)));
+#else
     v3 h_target = vec::normalize({ _target.x, 0.0f, _target.z });
     f32 angle   = math::to_degree(asin(abs(h_target.z)));
+#endif
 
     if (h_target.z >= 0.0f) {
         if (h_target.x >= 0.0f)
@@ -45,13 +50,13 @@ void camera::init_angle()
 
 void camera::default_init()
 {
-    speed       = 1.0f;
-    _angle_h    = 0.0f;
-    _angle_v    = 0.0f;
-    pos         = { 0.0f, 0.0f, 0.0f };
+    speed        = 1.0f;
+    _angle_h     = 0.0f;
+    _angle_v     = 0.0f;
+    _pos         = { 0.0f, 0.0f, 0.0f };
+    _target_pos = {};
     _up         = { 0.0f, 1.0f, 0.0f };
     _target     = { 0.0f, 0.0f, 1.0f };
-    _target_pos = {};
 }
 
 void camera::move(const mov_dir dir, const f32 dt, bool distance)
@@ -63,29 +68,29 @@ void camera::move(const mov_dir dir, const f32 dt, bool distance)
 
     switch (dir) {
         case mov_dir::forward: {
-            pos += _target * new_speed * dt;
+            _pos += _target * new_speed * dt;
         } break;
         case mov_dir::backward: {
-            pos -= _target * new_speed * dt;
+            _pos -= _target * new_speed * dt;
         } break;
         case mov_dir::up: {
-            pos.y += new_speed * dt;
+            _pos.y += new_speed * dt;
         } break;
         case mov_dir::down: {
-            pos.y -= new_speed * dt;
+            _pos.y -= new_speed * dt;
         } break;
         case mov_dir::right: {
             v3 res = vec::cross(_up, _target);
             res    = vec::normalize(res);
             res *= new_speed * dt;
-            pos += res;
+            _pos += res;
 
         } break;
         case mov_dir::left: {
             v3 res = vec::cross(_target, _up);
             res    = vec::normalize(res);
             res *= new_speed * dt;
-            pos += res;
+            _pos += res;
         } break;
         default: {
         } break;
@@ -101,26 +106,26 @@ void camera::pan(const mov_dir dir, const f32 dt, bool distance)
 
     switch (dir) {
         case mov_dir::forward: {
-            pos += _target * new_speed * dt;
+            _pos += _target * new_speed * dt;
             _target_pos += _target * new_speed * dt;
         } break;
         case mov_dir::backward: {
-            pos -= _target * new_speed * dt;
+            _pos -= _target * new_speed * dt;
             _target_pos -= _target * new_speed * dt;
         } break;
         case mov_dir::up: {
-            pos.y += new_speed * dt;
+            _pos.y += new_speed * dt;
             _target_pos.y += new_speed * dt;
         } break;
         case mov_dir::down: {
-            pos.y -= new_speed * dt;
+            _pos.y -= new_speed * dt;
             _target_pos.y -= new_speed * dt;
         } break;
         case mov_dir::right: {
             v3 res = vec::cross(_up, _target);
             res    = vec::normalize(res);
             res *= new_speed * dt;
-            pos += res;
+            _pos += res;
             _target_pos += res;
 
         } break;
@@ -128,7 +133,7 @@ void camera::pan(const mov_dir dir, const f32 dt, bool distance)
             v3 res = vec::cross(_target, _up);
             res    = vec::normalize(res);
             res *= speed * dt;
-            pos += res;
+            _pos += res;
             _target_pos += res;
         } break;
         default: {
@@ -171,7 +176,7 @@ void camera::orbit(input::keyboard kb, input::mouse ms, window_dims win_dims, f3
     if (dist) {
         d1 = *dist;
     } else {
-        d1 = vec::distance(pos, _target_pos);
+        d1 = vec::distance(_pos, _target_pos);
     }
 
     f32 mouse_sens  = 0.0005f / (1 / d1);
@@ -204,8 +209,8 @@ void camera::orbit(input::keyboard kb, input::mouse ms, window_dims win_dims, f3
             input::is_key_down(kb.left_shift) ? pan(dir, spd) : move(dir, spd);
         }
     }
-    _target = vec::normalize(pos - _target_pos);
-    f32 d2  = vec::distance(pos, _target_pos);
+    _target = vec::normalize(_pos - _target_pos);
+    f32 d2  = vec::distance(_pos, _target_pos);
     // moved away
     if (d1 > d2) {
         move(mov_dir::forward, d1 - d2, true);
@@ -227,6 +232,35 @@ void camera::orbit(input::keyboard kb, input::mouse ms, window_dims win_dims, f3
 
 m4 camera::get_view()
 {
-    return mat::get_uvn(_target, _up, pos);
+    v3 n = vec::normalize(_target);
+    v3 u = vec::normalize(vec::cross(_up, n));
+    v3 v = vec::cross(n, u);
+
+    m4 res = mat::row_3x3(u, v, n) * mat::translate(-_pos);
+
+    return res;
+}
+
+// NOTE: the camera is a special case because its tied direclty to the view matrix
+// and needs setters and getters
+void camera::set_pos(const v3 pos)
+{
+#if Z_UP
+    _pos = { pos.x, pos.z, -pos.y };
+#else
+    _pos        = pos;
+#endif
+}
+
+v3 camera::get_pos() const 
+{
+    v3 result;
+#if Z_UP
+    result = { _pos.x, -_pos.z, _pos.y };
+#else
+    result      = _pos;
+#endif
+    
+    return result;
 }
 }  // namespace tom

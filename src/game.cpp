@@ -8,7 +8,7 @@ namespace game
 internal void on_resize(game_state *state, window_dims win_dims)
 {
     f32 aspect = scast(f32, win_dims.width) / scast(f32, win_dims.height);
-    state->vp.proj =
+    state->wvp.proj =
         mat::proj_persp(scast(f32, win_dims.width) / scast(f32, win_dims.height), state->fov);
 }
 
@@ -97,14 +97,21 @@ bool init(thread_context *thread, game_memory *memory)
     state->models[2].color = { 0.0, 0.0f, 1.0f };
 
     state->lights.emplace_back(gfx, memory->plat_io, sphere_paths.mesh);
+#if Z_UP
+    state->lights[0].pos.z = 5.0f;
+    state->cam_pos.y    = -10.0f;
+#else
     state->lights[0].pos.y = 5.0f;
-    state->fov             = 1.0f;
+    state->cam_pos.z    = 10.0f;
+#endif
+    state->fov = 1.0f;
 
-    state->camera.pos.z = 10.0f;
+
+    state->camera.set_pos(state->cam_pos);
     state->camera.speed = 5.0f;
 
     state->scaler = 1.0f;
-    state->spec = 32.0f;
+    state->spec   = 32.0f;
 
     state->max_cubes = 100;
     state->n_cubes   = 1;
@@ -165,20 +172,22 @@ void update(thread_context *thread, game_memory *memory, game_input input, f32 d
         ImGui::End();
     }
 
+    state->cam_pos = state->camera.get_pos();
     {
         ImGui::Begin("Camera");
-        ImGui::SliderFloat("x", &state->camera.pos.x, -100.0f, 100.0f);
-        ImGui::SliderFloat("y", &state->camera.pos.y, -100.0f, 100.0f);
-        ImGui::SliderFloat("z", &state->camera.pos.z, -100.0f, 100.0f);
+        ImGui::SliderFloat("x", &state->cam_pos.x, -100.0f, 100.0f);
+        ImGui::SliderFloat("y", &state->cam_pos.y, -100.0f, 100.0f);
+        ImGui::SliderFloat("z", &state->cam_pos.z, -100.0f, 100.0f);
         ImGui::SliderFloat("speed", &state->camera.speed, -100.0f, 100.0f);
         ImGui::End();
     }
+    state->camera.set_pos(state->cam_pos);
 
     local_persist f32 time_total = 0.0f;
     time_total += dt * 0.01f;
 
     if (input::is_key_up(input.keyboard.d4)) {
-        mat::print_m4(state->vp.view);
+        mat::print_m4(state->wvp.view);
     }
 
     if (input::is_key_up(input.keyboard.z)) {
@@ -190,8 +199,13 @@ void update(thread_context *thread, game_memory *memory, game_input input, f32 d
         state->camera.orbit(input.keyboard, input.mouse, memory->win_dims);
     }
 
-    state->vp.view = state->camera.get_view();
-    m4 vp          = state->vp.proj * state->vp.view;
+#if Z_UP
+    state->wvp.world = mat::y_up_to_z_up();
+#else
+    state->wvp.world       = mat::identity();
+#endif
+    state->wvp.view = state->camera.get_view();
+    m4 wvp          = state->wvp.proj * state->wvp.view * state->wvp.world;
 
     local_persist constexpr f32 model_x_increment = 3.0f;
 
@@ -200,19 +214,17 @@ void update(thread_context *thread, game_memory *memory, game_input input, f32 d
     light_m4     = mat::scale(light_m4, 0.5f);
     state->light_shader.use();
     state->light_shader.set_m4("model", light_m4);
-    state->light_shader.set_m4("vp", vp);
+    state->light_shader.set_m4("wvp", wvp);
     state->light_shader.set_v3("light_col", light->color);
     light->draw();
 
-
     state->obj_shader.use();
-    state->obj_shader.set_m4("vp", vp);
+    state->obj_shader.set_m4("wvp", wvp);
     state->obj_shader.set_m4("model", light_m4);
     state->obj_shader.set_f32("shiny", state->spec);
-    state->obj_shader.set_v3("view_pos", state->camera.pos);
+    state->obj_shader.set_v3("view_pos", state->cam_pos);
     state->obj_shader.set_v3("light_col", light->color);
     state->obj_shader.set_v3("light_pos", light->pos);
-    state->obj_shader.set_v3("view_pos", state->camera.pos);
 
     f32 cur_x = -model_x_increment;
 

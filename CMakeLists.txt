@@ -116,7 +116,7 @@ add_executable(tomato_craft WIN32
     ${SOURCE_DIR}/GL/glext.h
     ${SOURCE_DIR}/GL/wglext.h
     ${SOURCE_DIR}/imgui_style.h
-    ${SOURCE_DIR}/common.hpp
+    ${SOURCE_DIR}/core.hpp
     ${SOURCE_DIR}/camera.hpp
     ${SOURCE_DIR}/camera.cpp
     ${SOURCE_DIR}/color.hpp

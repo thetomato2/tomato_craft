@@ -1,6 +1,6 @@
 #ifndef COLOR_HPP_
 #define COLOR_HPP_
-#include "common.hpp"
+#include "core.hpp"
 
 namespace tom
 {
