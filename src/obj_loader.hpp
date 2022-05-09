@@ -1,3 +1,4 @@
+#pragma once
 #ifndef TOMATO_OBJ_LOADER_HPP_
 #define TOMATO_OBJ_LOADER_HPP_
 

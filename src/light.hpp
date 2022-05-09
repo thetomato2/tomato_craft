@@ -1,3 +1,4 @@
+#pragma once
 #ifndef TOMATO_LIGHT_HPP_
 #define TOMATO_LIGHT_HPP_
 

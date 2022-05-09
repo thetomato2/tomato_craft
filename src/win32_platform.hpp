@@ -1,3 +1,4 @@
+#pragma once
 #ifndef WIN32_PLATFORM_HPP_
 #define WIN32_PLATFORM_HPP_
 

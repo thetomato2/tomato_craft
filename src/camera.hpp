@@ -1,4 +1,4 @@
-
+#pragma once
 #ifndef TOMATO_CAMERA_HPP_
 #define TOMATO_CAMERA_HPP_
 

@@ -1,3 +1,4 @@
+#pragma once
 #ifndef TOMATO_SHADER_HPP_
 #define TOMATO_SHADER_HPP_
 

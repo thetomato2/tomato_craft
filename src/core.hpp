@@ -1,3 +1,4 @@
+#pragma once
 #ifndef TOMATO_COMMON_HPP_
 #define TOMATO_COMMON_HPP_
 

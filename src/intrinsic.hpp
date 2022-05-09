@@ -1,3 +1,4 @@
+#pragma once
 #ifndef TOMATO_INTRINSIC_HPP_
 #define TOMATO_INTRINSIC_HPP_
 #include "core.hpp"

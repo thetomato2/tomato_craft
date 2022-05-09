@@ -1,3 +1,4 @@
+#pragma once
 #ifndef TOMATO_MESH_HPP_
 #define TOMATO_MESH_HPP_
 

@@ -1,3 +1,4 @@
+#pragma once
 #ifndef TOMATO_TEXTURE_HPP_
 #define TOMATO_TEXTURE_HPP_
 

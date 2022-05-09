@@ -1,11 +1,9 @@
 
-/**  Defines small vector with inplace storage.
-Based on CppCon 2016: Chandler Carruth "High Performance Code 201: Hybrid Data Structures" */
+#pragma once
+#ifndef TOMATO_VECTOR_HPP_
+    #define TOMATO_VECTOR_HPP_
 
-#ifndef TOMATO_SMALLVECTOR_HPP_
-#define TOMATO_SMALLVECTOR_HPP_
-
-#include "core.hpp"
+    #include "core.hpp"
 
 namespace tom
 {
@@ -29,7 +27,7 @@ public:
     vector(const vector &other)
     {
         _capacity = 2;
-        _size = 0;
+        _size     = 0;
         _data     = malloc(sizeof(T) * _capacity);
         resize(other.size());
         memcpy(_data, other.data(), sizeof(T) * _size);
@@ -37,7 +35,7 @@ public:
     vector &operator=(const vector &lhs)
     {
         _capacity = 2;
-        _size = 0;
+        _size     = 0;
         _data     = malloc(sizeof(T) * _capacity);
         resize(lhs.size());
         memcpy(_data, lhs.data(), sizeof(T) * _size);

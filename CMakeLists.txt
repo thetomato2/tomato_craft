@@ -127,6 +127,8 @@ add_executable(tomato_craft WIN32
     ${SOURCE_DIR}/light.hpp
     ${SOURCE_DIR}/light.cpp
     ${SOURCE_DIR}/math.hpp
+    ${SOURCE_DIR}/memory.hpp
+    ${SOURCE_DIR}/memory.cpp
     ${SOURCE_DIR}/mesh.hpp
     ${SOURCE_DIR}/mesh.cpp
     ${SOURCE_DIR}/model.hpp

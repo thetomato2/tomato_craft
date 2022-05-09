@@ -1,3 +1,4 @@
+#pragma once
 #ifndef TOMATO_MATH_HPP_
 #define TOMATO_MATH_HPP_
 

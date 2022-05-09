@@ -1,3 +1,4 @@
+#pragma once
 #ifndef TOMATO_GAME_HPP_
 #define TOMATO_GAME_HPP_
 

@@ -1,3 +1,4 @@
+#pragma once
 #ifndef TOMATO_ENTITY_HPP_
 #define TOMATO_ENTITY_HPP_
 
