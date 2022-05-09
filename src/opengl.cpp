@@ -7,6 +7,17 @@ namespace ogl
 
 bool init_func_ptrs(wgl_func_ptrs *func_ptrs, get_ogl_func_ptr get_func_ptr)
 {
+    func_ptrs->clear_color         = (_gl_clear_color)glClearColor;
+    func_ptrs->clear               = (_gl_clear)glClear;
+    func_ptrs->draw_arrays         = (_gl_draw_arrays)glDrawArrays;
+    func_ptrs->draw_elements       = (_gl_draw_elements)glDrawElements;
+    func_ptrs->gen_textures        = (_gl_gen_textures)glGenTextures;
+    func_ptrs->bind_texture        = (_gl_bind_texture)glBindTexture;
+    func_ptrs->tex_param_s32       = (_gl_texture_parameter_s32)glTexParameteri;
+    func_ptrs->tex_img_2d          = (_gl_tex_img_2d)glTexImage2D;
+    func_ptrs->poly_mode           = (_gl_poly_mode)glPolygonMode;
+    func_ptrs->enable              = (_gl_enable)glEnable;
+    func_ptrs->get_s32             = (_gl_get_s32)glGetIntegerv;
     func_ptrs->create_program      = (PFNGLCREATEPROGRAMPROC)get_func_ptr("glCreateProgram");
     func_ptrs->create_shader       = (PFNGLCREATESHADERPROC)get_func_ptr("glCreateShader");
     func_ptrs->shader_source       = (PFNGLSHADERSOURCEPROC)get_func_ptr("glShaderSource");

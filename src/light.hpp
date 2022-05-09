@@ -17,11 +17,12 @@ public:
     v3 color;
 
     light(ogl::wgl_func_ptrs gfx, platform_io plat_io, const char *mesh_path);
-    
+
     // NOTE: for the model specificily
     void draw();
 
 private:
+    ogl::wgl_func_ptrs _gfx;
     mesh _mesh;
 };
 

@@ -28,8 +28,8 @@ private:
     bool _active;
     texture::type _type;
     const char *_path;
-    GLenum _tex_target;
-    GLuint _tex_obj;
+    u32 _tex_target;
+    u32 _tex_obj;
     ogl::wgl_func_ptrs _gfx;
 };
 

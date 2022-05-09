@@ -64,8 +64,11 @@ struct game_state
         m4 proj;
     } wvp;
 
-    camera camera;
+    u32 cur_cam;
+    camera cam_main;
+    camera cam2;
     v3 cam_pos;
+    v3 cam2_pos;
     f32 fov;
     f32 fov_old;
     f32 time_last;

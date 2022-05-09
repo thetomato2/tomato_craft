@@ -42,9 +42,10 @@ bool init(thread_context *thread, game_memory *memory)
     new (&state->light_shader)
         shader(&memory->ogl_func_ptrs, memory->plat_io, "./light.vert", "./light.frag");
 
-    new (&state->camera) camera();
+    new (&state->cam_main) camera();
+    new (&state->cam2) camera();
 
-    ogl::enable(GL_DEPTH_TEST);
+    gfx.enable(GL_DEPTH_TEST);
 
     model::data_paths cube_paths = { .name   = "cube",
                                      .mesh   = "../../../assets/mesh/cube.obj",
@@ -99,16 +100,22 @@ bool init(thread_context *thread, game_memory *memory)
     state->lights.emplace_back(gfx, memory->plat_io, sphere_paths.mesh);
 #if Z_UP
     state->lights[0].pos.z = 5.0f;
-    state->cam_pos.y    = -10.0f;
+    state->cam_pos.y       = -10.0f;
 #else
     state->lights[0].pos.y = 5.0f;
-    state->cam_pos.z    = 10.0f;
+    state->cam_pos.z       = 10.0f;
 #endif
     state->fov = 1.0f;
 
+    state->cam_main.set_pos(state->cam_pos);
+    state->cam_main.speed = 5.0f;
 
-    state->camera.set_pos(state->cam_pos);
-    state->camera.speed = 5.0f;
+    f32 tp          = 10.0f;
+    state->cam2_pos = { -tp, -tp, tp };
+    state->cam2.set_pos(state->cam2_pos);
+    state->cam2.orbit(state->keyboard, state->mouse, memory->win_dims, nullptr, {});
+
+    state->cur_cam = 1;
 
     state->scaler = 1.0f;
     state->spec   = 32.0f;
@@ -142,20 +149,20 @@ void update(thread_context *thread, game_memory *memory, game_input input, f32 d
     ogl::wgl_func_ptrs gfx = memory->ogl_func_ptrs;
 
     if (state->line_mode) {
-        ogl::poly_mode(GL_FRONT_AND_BACK, GL_LINE);
+        gfx.poly_mode(GL_FRONT_AND_BACK, GL_LINE);
     } else {
-        ogl::poly_mode(GL_FRONT_AND_BACK, GL_FILL);
+        gfx.poly_mode(GL_FRONT_AND_BACK, GL_FILL);
     }
 
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplWin32_NewFrame();
     ImGui::NewFrame();
 
-    ogl::clear_color(state->clear_color.r, state->clear_color.g, state->clear_color.b,
-                     state->clear_color.a);
-    ogl::clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    gfx.clear_color(state->clear_color.r, state->clear_color.g, state->clear_color.b,
+                    state->clear_color.a);
+    gfx.clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    if (input::is_key_up(input.keyboard.d2)) state->line_mode = !state->line_mode;
+    if (input::is_key_up(input.keyboard.t)) state->line_mode = !state->line_mode;
 
     {
         ImGui::Begin("Scene");
@@ -172,16 +179,16 @@ void update(thread_context *thread, game_memory *memory, game_input input, f32 d
         ImGui::End();
     }
 
-    state->cam_pos = state->camera.get_pos();
+    state->cam_pos = state->cam_main.get_pos();
     {
         ImGui::Begin("Camera");
         ImGui::SliderFloat("x", &state->cam_pos.x, -100.0f, 100.0f);
         ImGui::SliderFloat("y", &state->cam_pos.y, -100.0f, 100.0f);
         ImGui::SliderFloat("z", &state->cam_pos.z, -100.0f, 100.0f);
-        ImGui::SliderFloat("speed", &state->camera.speed, -100.0f, 100.0f);
+        ImGui::SliderFloat("speed", &state->cam_main.speed, -100.0f, 100.0f);
         ImGui::End();
     }
-    state->camera.set_pos(state->cam_pos);
+    state->cam_main.set_pos(state->cam_pos);
 
     local_persist f32 time_total = 0.0f;
     time_total += dt * 0.01f;
@@ -190,13 +197,23 @@ void update(thread_context *thread, game_memory *memory, game_input input, f32 d
         mat::print_m4(state->wvp.view);
     }
 
-    if (input::is_key_up(input.keyboard.z)) {
-        f32 dist      = (scast(f32, state->n_cubes) * 0.9f) + 1.0f;
-        v3 target_pos = { scast(f32, state->n_cubes / 2), scast(f32, state->n_cubes_z / 2),
-                          scast(f32, state->n_cubes / 2) };
-        state->camera.orbit(input.keyboard, input.mouse, memory->win_dims, &dist, &target_pos);
-    } else {
-        state->camera.orbit(input.keyboard, input.mouse, memory->win_dims);
+    if (input::is_key_up(input.keyboard.d1)) {
+        state->cur_cam = 1;
+    }
+    if (input::is_key_up(input.keyboard.d2)) {
+        state->cur_cam = 2;
+    }
+
+    if (state->cur_cam == 1) {
+        if (input::is_key_up(input.keyboard.z)) {
+            f32 dist      = (scast(f32, state->n_cubes) * 0.9f) + 1.0f;
+            v3 target_pos = { scast(f32, state->n_cubes / 2), scast(f32, state->n_cubes_z / 2),
+                              scast(f32, state->n_cubes / 2) };
+            state->cam_main.orbit(input.keyboard, input.mouse, memory->win_dims, &dist,
+                                  &target_pos);
+        } else {
+            state->cam_main.orbit(input.keyboard, input.mouse, memory->win_dims);
+        }
     }
 
 #if Z_UP
@@ -204,7 +221,20 @@ void update(thread_context *thread, game_memory *memory, game_input input, f32 d
 #else
     state->wvp.world       = mat::identity();
 #endif
-    state->wvp.view = state->camera.get_view();
+    camera *cam;
+    switch (state->cur_cam) {
+        case 1: {
+            cam = &state->cam_main;
+        } break;
+        case 2: {
+            cam = &state->cam2;
+        } break;
+        default: {
+            cam = &state->cam_main;
+        }
+    }
+
+    state->wvp.view = cam->get_view();
     m4 wvp          = state->wvp.proj * state->wvp.view * state->wvp.world;
 
     local_persist constexpr f32 model_x_increment = 3.0f;
@@ -222,7 +252,7 @@ void update(thread_context *thread, game_memory *memory, game_input input, f32 d
     state->obj_shader.set_m4("wvp", wvp);
     state->obj_shader.set_m4("model", light_m4);
     state->obj_shader.set_f32("shiny", state->spec);
-    state->obj_shader.set_v3("view_pos", state->cam_pos);
+    state->obj_shader.set_v3("view_pos", cam->get_pos());
     state->obj_shader.set_v3("light_col", light->color);
     state->obj_shader.set_v3("light_pos", light->pos);
 
